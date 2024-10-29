@@ -1,54 +1,123 @@
+<!-- templates/index.html -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Routenoptimierung</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="container">
-        <h1>Routenoptimierung für Mitarbeiter</h1>
+        <h1>Routenoptimierung</h1>
+        <div class="control-panel">
+            <button id="optimizeButton">Route optimieren</button>
+        </div>
 
-        <h2>Kunden</h2>
-        <ul>
-            {% for customer in customers %}
-            <li>{{ customer.name }} - {{ customer.address }} (Zeitfenster: {{ customer.time_window_start }} - {{ customer.time_window_end }}, Dauer: {{ customer.visit_duration / 60 }} Minuten)</li>
-            {% endfor %}
-        </ul>
+        <div class="results">
+            <div class="map-container">
+                <canvas id="routeMap" width="600" height="600"></canvas>
+            </div>
 
-        <h2>Mitarbeiter</h2>
-        <ul>
-            {% for employee in employees %}
-            <li>{{ employee.name }} - Startpunkt: {{ employee.address }}</li>
-            {% endfor %}
-        </ul>
+            <div class="route-details">
+                <div class="vehicle-routes">
+                    <h2>Fahrzeug 1</h2>
+                    <div id="vehicle1Route" class="route-list"></div>
 
-        <button id="optimizeBtn">Route optimieren</button>
-
-        <div id="result"></div>
+                    <h2>Fahrzeug 2</h2>
+                    <div id="vehicle2Route" class="route-list"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        document.getElementById('optimizeBtn').addEventListener('click', function () {
-            fetch('/optimize', { method: 'POST' })
-            .then(response => response.json())
-            .then(data => {
-                if (data.optimized_routes) {
-                    let resultDiv = document.getElementById('result');
-                    resultDiv.innerHTML = '';
-                    for (let employee in data.optimized_routes) {
-                        let route = `<h3>${employee}</h3><ul>`;
-                        data.optimized_routes[employee].forEach(stop => {
-                            route += `<li>${stop.customer} - ${stop.address} (Ankunft: ${stop.arrival_time})</li>`;
-                        });
-                        route += '</ul>';
-                        resultDiv.innerHTML += route;
+        function drawMap(routes) {
+            const canvas = document.getElementById('routeMap');
+            const ctx = canvas.getContext('2d');
+
+            // Canvas leeren
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Skalierungsfaktoren
+            const scale = 20;
+            const offsetX = 100;
+            const offsetY = 100;
+
+            // Farben für die Routen
+            const colors = ['#FF4136', '#2ECC40'];
+
+            routes.forEach((route, vehicleIndex) => {
+                // Route zeichnen
+                ctx.beginPath();
+                ctx.strokeStyle = colors[vehicleIndex];
+                ctx.lineWidth = 2;
+
+                route.forEach((stop, index) => {
+                    const x = stop.coordinates[0] * scale + offsetX;
+                    const y = stop.coordinates[1] * scale + offsetY;
+
+                    if (index === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
                     }
-                } else {
-                    alert('Fehler bei der Optimierung: ' + data.error);
-                }
+
+                    // Punkt für jeden Stopp zeichnen
+                    ctx.fillStyle = index === 0 ? '#000000' : '#666666';
+                    ctx.beginPath();
+                    ctx.arc(x, y, 5, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Stoppnummer anzeigen
+                    ctx.fillStyle = '#000000';
+                    ctx.font = '12px Arial';
+                    ctx.fillText(stop.location.toString(), x + 8, y - 8);
+                });
+
+                ctx.stroke();
             });
+        }
+
+        function formatTime(minutes) {
+            const hours = Math.floor(minutes / 60) + 8; // Start bei 8:00 Uhr
+            const mins = minutes % 60;
+            return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+        }
+
+        function updateRouteDetails(routes) {
+            routes.forEach((route, index) => {
+                const container = document.getElementById(`vehicle${index + 1}Route`);
+                container.innerHTML = '';
+
+                route.forEach((stop) => {
+                    const stopElement = document.createElement('div');
+                    stopElement.className = 'stop-item';
+                    stopElement.innerHTML = `
+                        <strong>Standort ${stop.location}</strong><br>
+                        Ankunft: ${formatTime(stop.arrival_time)}<br>
+                        Abfahrt: ${formatTime(stop.departure_time)}
+                    `;
+                    container.appendChild(stopElement);
+                });
+            });
+        }
+
+        document.getElementById('optimizeButton').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/optimize');
+                const data = await response.json();
+
+                if (data.success) {
+                    drawMap(data.routes);
+                    updateRouteDetails(data.routes);
+                } else {
+                    alert('Fehler bei der Routenoptimierung: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Fehler:', error);
+                alert('Ein Fehler ist aufgetreten');
+            }
         });
     </script>
 </body>
