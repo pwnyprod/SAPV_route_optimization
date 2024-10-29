@@ -1,187 +1,167 @@
-# app.py
 from flask import Flask, render_template, jsonify
 from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
 import numpy as np
+import requests
+import time
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
 
-# Beispieldaten
 class DeliveryProblem:
     def __init__(self):
-        # Koordinaten für 10 Kunden und 2 Depots (x, y)
+        # Beispiel-Adressen für 2 Depots und 10 Kunden
         self.locations = [
-            (0, 0),  # Depot 1
-            (20, 20),  # Depot 2
-            (5, 10),  # Kunde 1
-            (15, 5),  # Kunde 2
-            (10, 15),  # Kunde 3
-            (5, 5),  # Kunde 4
-            (15, 15),  # Kunde 5
-            (8, 8),  # Kunde 6
-            (12, 12),  # Kunde 7
-            (3, 15),  # Kunde 8
-            (18, 8),  # Kunde 9
-            (7, 12),  # Kunde 10
+            {
+                "address": "Hauptstraße 1, 10115 Berlin",  # Depot 1
+                "coordinates": None  # Wird durch Geocoding gefüllt
+            },
+            {
+                "address": "Musterstraße 50, 10117 Berlin",  # Depot 2
+                "coordinates": None
+            },
+            # Kunden
+            {
+                "address": "Friedrichstraße 100, 10117 Berlin",
+                "coordinates": None
+            },
+            # ... weitere Kunden-Adressen ...
         ]
 
-        # Zeitfenster für jeden Standort (früher Start, später Start) in Minuten seit 8:00
+        # Zeitfenster für jeden Standort (Start, Ende) in Minuten seit 8:00
         self.time_windows = [
             (0, 480),  # Depot 1: 8:00-16:00
             (0, 480),  # Depot 2: 8:00-16:00
             (60, 120),  # Kunde 1: 9:00-10:00
-            (120, 180),  # Kunde 2: 10:00-11:00
-            (180, 240),  # Kunde 3: 11:00-12:00
-            (120, 240),  # Kunde 4: 10:00-12:00
-            (240, 300),  # Kunde 5: 12:00-13:00
-            (180, 360),  # Kunde 6: 11:00-14:00
-            (300, 360),  # Kunde 7: 13:00-14:00
-            (60, 420),  # Kunde 8: 9:00-15:00
-            (180, 420),  # Kunde 9: 11:00-15:00
-            (240, 480),  # Kunde 10: 12:00-16:00
+            # ... weitere Zeitfenster ...
         ]
 
-        # Besuchsdauer in Minuten für jeden Standort
         self.service_times = [
             0,  # Depot 1
             0,  # Depot 2
             15,  # Kunde 1
-            30,  # Kunde 2
-            20,  # Kunde 3
-            25,  # Kunde 4
-            15,  # Kunde 5
-            30,  # Kunde 6
-            20,  # Kunde 7
-            25,  # Kunde 8
-            15,  # Kunde 9
-            30,  # Kunde 10
+            # ... weitere Service-Zeiten ...
         ]
 
+    def geocode_addresses(self):
+        """Wandelt alle Adressen in Koordinaten um."""
+        for location in self.locations:
+            if location["coordinates"] is None:
+                # Hier würden Sie einen Geocoding-Service wie Google Maps, Nominatim, etc. verwenden
+                # Beispiel mit Nominatim (OpenStreetMap):
+                response = requests.get(
+                    f"https://nominatim.openstreetmap.org/search",
+                    params={
+                        "q": location["address"],
+                        "format": "json"
+                    },
+                    headers={"User-Agent": "YourApp/1.0"}
+                )
+
+                if response.status_code == 200 and response.json():
+                    result = response.json()[0]
+                    location["coordinates"] = (float(result["lat"]), float(result["lon"]))
+                    # Wichtig: Rate-Limiting beachten
+                    time.sleep(1)
+                else:
+                    raise ValueError(f"Konnte Adresse nicht geocodieren: {location['address']}")
+
     def get_distance_matrix(self):
-        """Berechnet die Entfernungsmatrix zwischen allen Standorten."""
+        """Berechnet die Entfernungsmatrix zwischen allen Standorten mit echten Fahrzeiten."""
+        if any(loc["coordinates"] is None for loc in self.locations):
+            self.geocode_addresses()
+
         size = len(self.locations)
         matrix = np.zeros((size, size))
 
         for i in range(size):
             for j in range(size):
-                x1, y1 = self.locations[i]
-                x2, y2 = self.locations[j]
-                # Euklidische Distanz * 5 für realistische Fahrzeiten in Minuten
-                matrix[i][j] = int(np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) * 5)
+                if i != j:
+                    # Hier würden Sie einen Routing-Service verwenden
+                    # Beispiel mit OSRM (Open Source Routing Machine):
+                    lat1, lon1 = self.locations[i]["coordinates"]
+                    lat2, lon2 = self.locations[j]["coordinates"]
+
+                    response = requests.get(
+                        f"http://router.project-osrm.org/route/v1/driving/"
+                        f"{lon1},{lat1};{lon2},{lat2}",
+                        params={"overview": "false"}
+                    )
+
+                    if response.status_code == 200:
+                        # Fahrtzeit in Sekunden zu Minuten umrechnen
+                        duration = response.json()["routes"][0]["duration"] / 60
+                        matrix[i][j] = int(duration)
+                    else:
+                        # Fallback auf Luftlinie wenn Routing-Service nicht verfügbar
+                        matrix[i][j] = self._calculate_euclidean_distance(
+                            self.locations[i]["coordinates"],
+                            self.locations[j]["coordinates"]
+                        )
+
+                    # Rate-Limiting beachten
+                    time.sleep(0.1)
 
         return matrix.astype(int)
 
+    def _calculate_euclidean_distance(self, coord1, coord2):
+        """Berechnet die Luftlinie zwischen zwei Koordinaten."""
+        from math import radians, cos, sin, asin, sqrt
 
-def create_data_model():
-    """Erstellt das Datenmodell für das Routing-Problem."""
-    data = {}
-    problem = DeliveryProblem()
+        lat1, lon1 = coord1
+        lat2, lon2 = coord2
 
-    data['distance_matrix'] = problem.get_distance_matrix()
-    data['time_windows'] = problem.time_windows
-    data['service_times'] = problem.service_times
-    data['num_vehicles'] = 2
-    data['depot'] = 0  # Erstes Depot als Hauptdepot
-    data['starts'] = [0, 1]  # Fahrzeug 1 startet von Depot 1, Fahrzeug 2 von Depot 2
-    data['ends'] = [0, 1]  # Fahrzeuge kehren zu ihren Startdepots zurück
+        # Haversine-Formel für Entfernungsberechnung auf der Erdkugel
+        R = 6371  # Erdradius in km
 
-    return data, problem
+        lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
 
+        a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+        c = 2 * asin(sqrt(a))
+        km = R * c
 
-def solve_routing_problem():
-    """Löst das Vehicle Routing Problem mit Zeitfenstern."""
-    data, problem = create_data_model()
-
-    manager = pywrapcp.RoutingIndexManager(
-        len(data['distance_matrix']),
-        data['num_vehicles'],
-        data['starts'],
-        data['ends'])
-
-    routing = pywrapcp.RoutingModel(manager)
-
-    def distance_callback(from_index, to_index):
-        from_node = manager.IndexToNode(from_index)
-        to_node = manager.IndexToNode(to_index)
-        return data['distance_matrix'][from_node][to_node]
-
-    def time_callback(from_index, to_index):
-        from_node = manager.IndexToNode(from_index)
-        to_node = manager.IndexToNode(to_index)
-        travel_time = data['distance_matrix'][from_node][to_node]
-        return travel_time + data['service_times'][from_node]
-
-    transit_callback_index = routing.RegisterTransitCallback(distance_callback)
-    routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
-
-    time_callback_index = routing.RegisterTransitCallback(time_callback)
-    routing.AddDimension(
-        time_callback_index,
-        30,  # Allow waiting time
-        480,  # Maximum time per vehicle
-        False,  # Don't force start cumul to zero
-        'Time')
-
-    time_dimension = routing.GetDimensionOrDie('Time')
-
-    # Zeitfenster hinzufügen
-    for location_idx, time_window in enumerate(data['time_windows']):
-        index = manager.NodeToIndex(location_idx)
-        time_dimension.CumulVar(index).SetRange(time_window[0], time_window[1])
-
-    # Lösungsstrategie festlegen
-    search_parameters = pywrapcp.DefaultRoutingSearchParameters()
-    search_parameters.first_solution_strategy = (
-        routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC)
-    search_parameters.local_search_metaheuristic = (
-        routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH)
-    search_parameters.time_limit.seconds = 30
-
-    # Lösung finden
-    solution = routing.SolveWithParameters(search_parameters)
-
-    if not solution:
-        return None
-
-    routes = []
-    for vehicle_id in range(data['num_vehicles']):
-        route = []
-        index = routing.Start(vehicle_id)
-        while not routing.IsEnd(index):
-            node = manager.IndexToNode(index)
-            time_var = time_dimension.CumulVar(index)
-            route.append({
-                'location': node,
-                'coordinates': problem.locations[node],
-                'arrival_time': solution.Min(time_var),
-                'departure_time': solution.Min(time_var) + data['service_times'][node]
-            })
-            index = solution.Value(routing.NextVar(index))
-        node = manager.IndexToNode(index)
-        time_var = time_dimension.CumulVar(index)
-        route.append({
-            'location': node,
-            'coordinates': problem.locations[node],
-            'arrival_time': solution.Min(time_var),
-            'departure_time': solution.Min(time_var)
-        })
-        routes.append(route)
-
-    return routes
+        # Geschätzte Fahrzeit: 2 Minuten pro Kilometer
+        return int(km * 2)
 
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+def format_time(minutes):
+    """Formatiert Minuten seit 8:00 in lesbare Uhrzeit."""
+    base_time = datetime.strptime("8:00", "%H:%M")
+    actual_time = base_time + timedelta(minutes=minutes)
+    return actual_time.strftime("%H:%M")
 
 
 @app.route('/optimize')
 def optimize():
+    # Routing-Logik wie zuvor, aber mit zusätzlichen Adressinformationen in der Ausgabe
     routes = solve_routing_problem()
+
     if routes:
-        return jsonify({'success': True, 'routes': routes})
-    return jsonify({'success': False, 'message': 'Keine Lösung gefunden'})
+        formatted_routes = []
+        for route in routes:
+            formatted_route = []
+            for stop in route:
+                formatted_stop = {
+                    'address': problem.locations[stop['location']]['address'],
+                    'coordinates': problem.locations[stop['location']]['coordinates'],
+                    'arrival_time': format_time(stop['arrival_time']),
+                    'departure_time': format_time(stop['departure_time'])
+                }
+                formatted_route.append(formatted_stop)
+            formatted_routes.append(formatted_route)
+
+        return jsonify({
+            'success': True,
+            'routes': formatted_routes
+        })
+
+    return jsonify({
+        'success': False,
+        'message': 'Keine Lösung gefunden'
+    })
 
 
 if __name__ == '__main__':

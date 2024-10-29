@@ -1,123 +1,131 @@
-<!-- templates/index.html -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Routenoptimierung</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Lieferoptimierung</title>
+    <link rel="stylesheet" href="static/styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>Routenoptimierung</h1>
-        <div class="control-panel">
-            <button id="optimizeButton">Route optimieren</button>
-        </div>
+        <header>
+            <h1>Lieferrouten-Optimierung</h1>
+        </header>
 
-        <div class="results">
-            <div class="map-container">
-                <canvas id="routeMap" width="600" height="600"></canvas>
-            </div>
+        <main>
+            <div class="content-wrapper">
+                <div class="sidebar">
+                    <section class="control-panel">
+                        <h2>Steuerung</h2>
+                        <button id="optimizeBtn" class="primary-btn">Routen optimieren</button>
+                        <div id="loadingIndicator" class="loading-indicator hidden">
+                            Berechne optimale Routen...
+                        </div>
+                    </section>
 
-            <div class="route-details">
-                <div class="vehicle-routes">
-                    <h2>Fahrzeug 1</h2>
-                    <div id="vehicle1Route" class="route-list"></div>
+                    <section class="route-list">
+                        <h2>Optimierte Routen</h2>
+                        <div id="routeResults">
+                            <!-- Route results will be inserted here -->
+                        </div>
+                    </section>
+                </div>
 
-                    <h2>Fahrzeug 2</h2>
-                    <div id="vehicle2Route" class="route-list"></div>
+                <div class="map-container">
+                    <div id="map"></div>
                 </div>
             </div>
-        </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2024 Lieferoptimierung</p>
+        </footer>
     </div>
 
     <script>
-        function drawMap(routes) {
-            const canvas = document.getElementById('routeMap');
-            const ctx = canvas.getContext('2d');
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize map
+            const map = L.map('map').setView([52.52, 13.405], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
 
-            // Canvas leeren
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let markers = [];
+            let routeLines = [];
 
-            // Skalierungsfaktoren
-            const scale = 20;
-            const offsetX = 100;
-            const offsetY = 100;
+            // Handle optimize button click
+            document.getElementById('optimizeBtn').addEventListener('click', async function() {
+                const loadingIndicator = document.getElementById('loadingIndicator');
+                const routeResults = document.getElementById('routeResults');
 
-            // Farben für die Routen
-            const colors = ['#FF4136', '#2ECC40'];
+                loadingIndicator.classList.remove('hidden');
+                routeResults.innerHTML = '';
 
-            routes.forEach((route, vehicleIndex) => {
-                // Route zeichnen
-                ctx.beginPath();
-                ctx.strokeStyle = colors[vehicleIndex];
-                ctx.lineWidth = 2;
+                // Clear previous markers and routes
+                markers.forEach(marker => map.removeLayer(marker));
+                routeLines.forEach(line => map.removeLayer(line));
+                markers = [];
+                routeLines = [];
 
-                route.forEach((stop, index) => {
-                    const x = stop.coordinates[0] * scale + offsetX;
-                    const y = stop.coordinates[1] * scale + offsetY;
+                try {
+                    const response = await fetch('/optimize');
+                    const data = await response.json();
 
-                    if (index === 0) {
-                        ctx.moveTo(x, y);
+                    if (data.success) {
+                        data.routes.forEach((route, routeIndex) => {
+                            // Create route display element
+                            const routeElement = document.createElement('div');
+                            routeElement.className = 'route-item';
+                            routeElement.innerHTML = `<h3>Route ${routeIndex + 1}</h3>`;
+
+                            const stopList = document.createElement('ul');
+                            const routeCoordinates = [];
+
+                            route.forEach((stop, stopIndex) => {
+                                // Add stop to list
+                                const stopItem = document.createElement('li');
+                                stopItem.textContent = `${stop.address} (${stop.arrival_time} - ${stop.departure_time})`;
+                                stopList.appendChild(stopItem);
+
+                                // Add marker to map
+                                const marker = L.marker([stop.coordinates[0], stop.coordinates[1]])
+                                    .bindPopup(`Stop ${stopIndex + 1}: ${stop.address}<br>Arrival: ${stop.arrival_time}`);
+                                markers.push(marker);
+                                marker.addTo(map);
+
+                                routeCoordinates.push([stop.coordinates[0], stop.coordinates[1]]);
+                            });
+
+                            // Draw route line
+                            const routeLine = L.polyline(routeCoordinates, {
+                                color: `hsl(${360 * (routeIndex / data.routes.length)}, 70%, 50%)`,
+                                weight: 3,
+                                opacity: 0.7
+                            });
+                            routeLines.push(routeLine);
+                            routeLine.addTo(map);
+
+                            routeElement.appendChild(stopList);
+                            routeResults.appendChild(routeElement);
+                        });
+
+                        // Fit map bounds to show all markers
+                        if (markers.length > 0) {
+                            const group = new L.featureGroup(markers);
+                            map.fitBounds(group.getBounds().pad(0.1));
+                        }
                     } else {
-                        ctx.lineTo(x, y);
+                        routeResults.innerHTML = '<p class="error">Keine Lösung gefunden</p>';
                     }
-
-                    // Punkt für jeden Stopp zeichnen
-                    ctx.fillStyle = index === 0 ? '#000000' : '#666666';
-                    ctx.beginPath();
-                    ctx.arc(x, y, 5, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    // Stoppnummer anzeigen
-                    ctx.fillStyle = '#000000';
-                    ctx.font = '12px Arial';
-                    ctx.fillText(stop.location.toString(), x + 8, y - 8);
-                });
-
-                ctx.stroke();
-            });
-        }
-
-        function formatTime(minutes) {
-            const hours = Math.floor(minutes / 60) + 8; // Start bei 8:00 Uhr
-            const mins = minutes % 60;
-            return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-        }
-
-        function updateRouteDetails(routes) {
-            routes.forEach((route, index) => {
-                const container = document.getElementById(`vehicle${index + 1}Route`);
-                container.innerHTML = '';
-
-                route.forEach((stop) => {
-                    const stopElement = document.createElement('div');
-                    stopElement.className = 'stop-item';
-                    stopElement.innerHTML = `
-                        <strong>Standort ${stop.location}</strong><br>
-                        Ankunft: ${formatTime(stop.arrival_time)}<br>
-                        Abfahrt: ${formatTime(stop.departure_time)}
-                    `;
-                    container.appendChild(stopElement);
-                });
-            });
-        }
-
-        document.getElementById('optimizeButton').addEventListener('click', async () => {
-            try {
-                const response = await fetch('/optimize');
-                const data = await response.json();
-
-                if (data.success) {
-                    drawMap(data.routes);
-                    updateRouteDetails(data.routes);
-                } else {
-                    alert('Fehler bei der Routenoptimierung: ' + data.message);
+                } catch (error) {
+                    routeResults.innerHTML = '<p class="error">Fehler bei der Routenoptimierung</p>';
+                    console.error('Error:', error);
                 }
-            } catch (error) {
-                console.error('Fehler:', error);
-                alert('Ein Fehler ist aufgetreten');
-            }
+
+                loadingIndicator.classList.add('hidden');
+            });
         });
     </script>
 </body>
