@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Routenoptimierung</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Routenoptimierung für Mitarbeiter</h1>
+
+        <h2>Kunden</h2>
+        <ul>
+            {% for customer in customers %}
+            <li>{{ customer.name }} - {{ customer.address }} (Zeitfenster: {{ customer.time_window_start }} - {{ customer.time_window_end }}, Dauer: {{ customer.visit_duration / 60 }} Minuten)</li>
+            {% endfor %}
+        </ul>
+
+        <h2>Mitarbeiter</h2>
+        <ul>
+            {% for employee in employees %}
+            <li>{{ employee.name }} - Startpunkt: {{ employee.address }}</li>
+            {% endfor %}
+        </ul>
+
+        <button id="optimizeBtn">Route optimieren</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        document.getElementById('optimizeBtn').addEventListener('click', function () {
+            fetch('/optimize', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.optimized_routes) {
+                    let resultDiv = document.getElementById('result');
+                    resultDiv.innerHTML = '';
+                    for (let employee in data.optimized_routes) {
+                        let route = `<h3>${employee}</h3><ul>`;
+                        data.optimized_routes[employee].forEach(stop => {
+                            route += `<li>${stop.customer} - ${stop.address} (Ankunft: ${stop.arrival_time})</li>`;
+                        });
+                        route += '</ul>';
+                        resultDiv.innerHTML += route;
+                    }
+                } else {
+                    alert('Fehler bei der Optimierung: ' + data.error);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
