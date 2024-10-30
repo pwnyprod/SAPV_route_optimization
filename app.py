@@ -183,9 +183,6 @@ def optimize():
         return jsonify({'success': True, 'routes': routes})
     return jsonify({'success': False, 'message': 'Keine Lösung gefunden'})
 
-@app.route('/')
-def index():
-    return render_template('index.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
