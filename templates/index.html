@@ -3,129 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lieferoptimierung</title>
-    <link rel="stylesheet" href="static/styles.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <title>Routenoptimierung</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+    <style>
+        #map {
+            height: 500px;
+            width: 100%;
+        }
+        .route-info {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
 </head>
-<body>
-    <div class="container">
-        <header>
-            <h1>Lieferrouten-Optimierung</h1>
-        </header>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-8 text-center">Routenoptimierung</h1>
 
-        <main>
-            <div class="content-wrapper">
-                <div class="sidebar">
-                    <section class="control-panel">
-                        <h2>Steuerung</h2>
-                        <button id="optimizeBtn" class="primary-btn">Routen optimieren</button>
-                        <div id="loadingIndicator" class="loading-indicator hidden">
-                            Berechne optimale Routen...
-                        </div>
-                    </section>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Kartendarstellung -->
+            <div class="bg-white rounded-lg shadow-lg p-4">
+                <h2 class="text-xl font-semibold mb-4">Routenkarte</h2>
+                <div id="map"></div>
+            </div>
 
-                    <section class="route-list">
-                        <h2>Optimierte Routen</h2>
-                        <div id="routeResults">
-                            <!-- Route results will be inserted here -->
-                        </div>
-                    </section>
-                </div>
-
-                <div class="map-container">
-                    <div id="map"></div>
+            <!-- Routen Details -->
+            <div class="bg-white rounded-lg shadow-lg p-4">
+                <h2 class="text-xl font-semibold mb-4">Routendetails</h2>
+                <div id="routeDetails" class="route-info">
+                    <div class="animate-pulse">
+                        <p class="text-gray-600">Lade Routeninformationen...</p>
+                    </div>
                 </div>
             </div>
-        </main>
+        </div>
 
-        <footer>
-            <p>&copy; 2024 Lieferoptimierung</p>
-        </footer>
+        <!-- Optimierungsbutton -->
+        <div class="mt-8 text-center">
+            <button id="optimizeButton" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+                Route optimieren
+            </button>
+        </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize map
-            const map = L.map('map').setView([52.52, 13.405], 12);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(map);
+        // Karte initialisieren
+        const map = L.map('map').setView([52.52, 13.405], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
 
-            let markers = [];
-            let routeLines = [];
+        // Marker und Routen-Layer
+        let markers = [];
+        let routeLines = [];
 
-            // Handle optimize button click
-            document.getElementById('optimizeBtn').addEventListener('click', async function() {
-                const loadingIndicator = document.getElementById('loadingIndicator');
-                const routeResults = document.getElementById('routeResults');
+        // Farben für verschiedene Routen
+        const routeColors = ['#FF0000', '#00FF00', '#0000FF', '#FFA500', '#800080'];
 
-                loadingIndicator.classList.remove('hidden');
-                routeResults.innerHTML = '';
+        function clearMap() {
+            markers.forEach(marker => map.removeLayer(marker));
+            routeLines.forEach(line => map.removeLayer(line));
+            markers = [];
+            routeLines = [];
+        }
 
-                // Clear previous markers and routes
-                markers.forEach(marker => map.removeLayer(marker));
-                routeLines.forEach(line => map.removeLayer(line));
-                markers = [];
-                routeLines = [];
+        function displayRoutes(routes) {
+            clearMap();
 
-                try {
-                    const response = await fetch('/optimize');
-                    const data = await response.json();
+            routes.forEach((route, routeIndex) => {
+                const routeColor = routeColors[routeIndex % routeColors.length];
+                const routeCoordinates = [];
 
-                    if (data.success) {
-                        data.routes.forEach((route, routeIndex) => {
-                            // Create route display element
-                            const routeElement = document.createElement('div');
-                            routeElement.className = 'route-item';
-                            routeElement.innerHTML = `<h3>Route ${routeIndex + 1}</h3>`;
+                route.forEach((stop, stopIndex) => {
+                    const coord = stop.coordinates;
+                    if (coord) {
+                        const latLng = [coord[0], coord[1]];
+                        routeCoordinates.push(latLng);
 
-                            const stopList = document.createElement('ul');
-                            const routeCoordinates = [];
+                        // Marker erstellen
+                        const marker = L.marker(latLng)
+                            .bindPopup(`
+                                <strong>${stop.address}</strong><br>
+                                Ankunft: ${stop.arrival_time}<br>
+                                Abfahrt: ${stop.departure_time}
+                            `)
+                            .addTo(map);
 
-                            route.forEach((stop, stopIndex) => {
-                                // Add stop to list
-                                const stopItem = document.createElement('li');
-                                stopItem.textContent = `${stop.address} (${stop.arrival_time} - ${stop.departure_time})`;
-                                stopList.appendChild(stopItem);
-
-                                // Add marker to map
-                                const marker = L.marker([stop.coordinates[0], stop.coordinates[1]])
-                                    .bindPopup(`Stop ${stopIndex + 1}: ${stop.address}<br>Arrival: ${stop.arrival_time}`);
-                                markers.push(marker);
-                                marker.addTo(map);
-
-                                routeCoordinates.push([stop.coordinates[0], stop.coordinates[1]]);
-                            });
-
-                            // Draw route line
-                            const routeLine = L.polyline(routeCoordinates, {
-                                color: `hsl(${360 * (routeIndex / data.routes.length)}, 70%, 50%)`,
-                                weight: 3,
-                                opacity: 0.7
-                            });
-                            routeLines.push(routeLine);
-                            routeLine.addTo(map);
-
-                            routeElement.appendChild(stopList);
-                            routeResults.appendChild(routeElement);
-                        });
-
-                        // Fit map bounds to show all markers
-                        if (markers.length > 0) {
-                            const group = new L.featureGroup(markers);
-                            map.fitBounds(group.getBounds().pad(0.1));
-                        }
-                    } else {
-                        routeResults.innerHTML = '<p class="error">Keine Lösung gefunden</p>';
+                        markers.push(marker);
                     }
-                } catch (error) {
-                    routeResults.innerHTML = '<p class="error">Fehler bei der Routenoptimierung</p>';
-                    console.error('Error:', error);
-                }
+                });
 
-                loadingIndicator.classList.add('hidden');
+                // Routenlinie zeichnen
+                if (routeCoordinates.length > 1) {
+                    const routeLine = L.polyline(routeCoordinates, {
+                        color: routeColor,
+                        weight: 3,
+                        opacity: 0.7
+                    }).addTo(map);
+                    routeLines.push(routeLine);
+                }
             });
+
+            // Karte an alle Marker anpassen
+            if (markers.length > 0) {
+                const group = new L.featureGroup(markers);
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
+
+        function updateRouteDetails(routes) {
+            const routeDetails = document.getElementById('routeDetails');
+            let html = '';
+
+            routes.forEach((route, routeIndex) => {
+                html += `
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-2" style="color: ${routeColors[routeIndex % routeColors.length]}">
+                            Route ${routeIndex + 1}
+                        </h3>
+                        <div class="space-y-2">
+                `;
+
+                route.forEach((stop, stopIndex) => {
+                    html += `
+                        <div class="border-l-4 pl-4 py-2" style="border-color: ${routeColors[routeIndex % routeColors.length]}">
+                            <div class="font-medium">${stop.address}</div>
+                            <div class="text-sm text-gray-600">
+                                Ankunft: ${stop.arrival_time} | Abfahrt: ${stop.departure_time}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+
+            routeDetails.innerHTML = html;
+        }
+
+        // Event Listener für den Optimierungsbutton
+        document.getElementById('optimizeButton').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/optimize');
+                const data = await response.json();
+
+                if (data.success) {
+                    displayRoutes(data.routes);
+                    updateRouteDetails(data.routes);
+                } else {
+                    alert('Fehler bei der Routenoptimierung: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Fehler:', error);
+                alert('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
+            }
         });
     </script>
 </body>
