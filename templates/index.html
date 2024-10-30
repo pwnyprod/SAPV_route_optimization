@@ -1,123 +1,83 @@
-<!-- templates/index.html -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Routenoptimierung</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Lieferoptimierung</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCQsBRlgxruIcymhmMtJPjFCW9mS7uKhl0&callback=initMap" async defer></script>
+    <style>
+        /* Set the size of the map container */
+        #map {
+            height: 400px;
+            margin-top: 20px;
+            border: 1px solid #ccc;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <h1>Routenoptimierung</h1>
-        <div class="control-panel">
-            <button id="optimizeButton">Route optimieren</button>
-        </div>
-
-        <div class="results">
-            <div class="map-container">
-                <canvas id="routeMap" width="600" height="600"></canvas>
-            </div>
-
-            <div class="route-details">
-                <div class="vehicle-routes">
-                    <h2>Fahrzeug 1</h2>
-                    <div id="vehicle1Route" class="route-list"></div>
-
-                    <h2>Fahrzeug 2</h2>
-                    <div id="vehicle2Route" class="route-list"></div>
-                </div>
-            </div>
-        </div>
+        <h1>Lieferoptimierung</h1>
+        <button id="optimize-btn">Optimieren</button>
+        <div id="results"></div>
+        <div id="map"></div>
     </div>
 
     <script>
-        function drawMap(routes) {
-            const canvas = document.getElementById('routeMap');
-            const ctx = canvas.getContext('2d');
+        let map;
 
-            // Canvas leeren
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        function initMap() {
+            // Initialisiere die Karte mit einem Startpunkt (z.B. Alexanderplatz, Berlin)
+            map = new google.maps.Map(document.getElementById("map"), {
+                center: { lat: 52.5200, lng: 13.4050 }, // Koordinaten für Berlin
+                zoom: 12,
+            });
+        }
 
-            // Skalierungsfaktoren
-            const scale = 20;
-            const offsetX = 100;
-            const offsetY = 100;
-
-            // Farben für die Routen
-            const colors = ['#FF4136', '#2ECC40'];
-
+        function addMarkers(routes) {
             routes.forEach((route, vehicleIndex) => {
-                // Route zeichnen
-                ctx.beginPath();
-                ctx.strokeStyle = colors[vehicleIndex];
-                ctx.lineWidth = 2;
+                route.forEach(stop => {
+                    // Füge Marker für jede Adresse hinzu
+                    const marker = new google.maps.Marker({
+                        position: { lat: stop.coords.lat, lng: stop.coords.lng }, // Koordinaten für Marker
+                        map: map,
+                        title: stop.address
+                    });
 
-                route.forEach((stop, index) => {
-                    const x = stop.coordinates[0] * scale + offsetX;
-                    const y = stop.coordinates[1] * scale + offsetY;
+                    // Optional: Infofenster für jeden Marker
+                    const infowindow = new google.maps.InfoWindow({
+                        content: `<div><strong>${stop.address}</strong><br>Ankunft: ${stop.arrival_time} Minuten<br>Abfahrt: ${stop.departure_time} Minuten</div>`,
+                    });
 
-                    if (index === 0) {
-                        ctx.moveTo(x, y);
+                    marker.addListener("click", () => {
+                        infowindow.open(map, marker);
+                    });
+                });
+            });
+        }
+
+        $(document).ready(function() {
+            $('#optimize-btn').click(function() {
+                $.post('/optimize', function(data) {
+                    if (data.success) {
+                        let routesHtml = '<h2>Optimierte Routen:</h2><ul>';
+                        data.routes.forEach(function(route, index) {
+                            routesHtml += `<li>Fahrzeug ${index + 1}:<ul>`;
+                            route.forEach(function(stop) {
+                                routesHtml += `<li>${stop.address} - Ankunft: ${stop.arrival_time} Minuten, Abfahrt: ${stop.departure_time} Minuten</li>`;
+                            });
+                            routesHtml += '</ul></li>';
+                        });
+                        routesHtml += '</ul>';
+                        $('#results').html(routesHtml);
+                        // Füge Marker auf der Karte hinzu
+                        addMarkers(data.routes);
                     } else {
-                        ctx.lineTo(x, y);
+                        $('#results').html('<p>' + data.message + '</p>');
                     }
-
-                    // Punkt für jeden Stopp zeichnen
-                    ctx.fillStyle = index === 0 ? '#000000' : '#666666';
-                    ctx.beginPath();
-                    ctx.arc(x, y, 5, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    // Stoppnummer anzeigen
-                    ctx.fillStyle = '#000000';
-                    ctx.font = '12px Arial';
-                    ctx.fillText(stop.location.toString(), x + 8, y - 8);
-                });
-
-                ctx.stroke();
-            });
-        }
-
-        function formatTime(minutes) {
-            const hours = Math.floor(minutes / 60) + 8; // Start bei 8:00 Uhr
-            const mins = minutes % 60;
-            return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-        }
-
-        function updateRouteDetails(routes) {
-            routes.forEach((route, index) => {
-                const container = document.getElementById(`vehicle${index + 1}Route`);
-                container.innerHTML = '';
-
-                route.forEach((stop) => {
-                    const stopElement = document.createElement('div');
-                    stopElement.className = 'stop-item';
-                    stopElement.innerHTML = `
-                        <strong>Standort ${stop.location}</strong><br>
-                        Ankunft: ${formatTime(stop.arrival_time)}<br>
-                        Abfahrt: ${formatTime(stop.departure_time)}
-                    `;
-                    container.appendChild(stopElement);
                 });
             });
-        }
-
-        document.getElementById('optimizeButton').addEventListener('click', async () => {
-            try {
-                const response = await fetch('/optimize');
-                const data = await response.json();
-
-                if (data.success) {
-                    drawMap(data.routes);
-                    updateRouteDetails(data.routes);
-                } else {
-                    alert('Fehler bei der Routenoptimierung: ' + data.message);
-                }
-            } catch (error) {
-                console.error('Fehler:', error);
-                alert('Ein Fehler ist aufgetreten');
-            }
         });
     </script>
 </body>
