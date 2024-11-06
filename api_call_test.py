@@ -9,7 +9,7 @@ def call_sync_api(project_id: str) -> None:
     """Call the sync api for fleet routing."""
     # Use the default credentials for the environment.
     # Change the file name to your request file.
-    request_file_name = "request.json"
+    request_file_name = "test_request.json"
     fleet_routing_client = optimization_v1.FleetRoutingClient()
 
     with open(request_file_name) as f:
