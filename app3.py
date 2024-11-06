@@ -12,22 +12,21 @@ app = Flask(__name__)
 # Google Maps Client initialisieren
 gmaps = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
 
-
 class Customer:
     def __init__(self, name, address, lat=None, lon=None):
+        self.id = len(customers) + 1  # Eindeutige ID basierend auf der Länge der Liste
         self.name = name
         self.address = address
         self.lat = lat
         self.lon = lon
 
-
 class Vehicle:
     def __init__(self, name, start_address, lat=None, lon=None):
+        self.id = len(vehicles) + 1  # Eindeutige ID basierend auf der Länge der Liste
         self.name = name
         self.start_address = start_address
         self.lat = lat
         self.lon = lon
-
 
 # In-Memory Storage (in einer realen Anwendung würde man eine Datenbank verwenden)
 customers = []
@@ -89,29 +88,38 @@ def optimize_route():
 
     # Fleet Routing Request erstellen
     fleet_routing_request = optimization_v1.OptimizeToursRequest(
-        parent=f"projects/routenplanung-sapv",
-        vehicles=[
-            optimization_v1.Vehicle(
-                start_location=optimization_v1.Location(
-                    latitude=vehicle.lat,
-                    longitude=vehicle.lon
-                ),
-                end_location=optimization_v1.Location(
-                    latitude=vehicle.lat,
-                    longitude=vehicle.lon
-                )
-            ) for vehicle in vehicles
-        ],
-        shipments=[
-            optimization_v1.Shipment(
-                pickup=optimization_v1.Pickup(
-                    location=optimization_v1.Location(
-                        latitude=customer.lat,
-                        longitude=customer.lon
-                    )
-                )
-            ) for customer in customers
-        ]
+        {
+            "parent": "projects/routenplanung-sapv",
+            "model": {
+                "shipments": [
+                    {
+                        "pickups": [
+                            {
+                                "arrival_location": {
+                                    "latitude": customer.lat,
+                                    "longitude": customer.lon
+                                },
+                                "duration": "150s"  # Du kannst die Dauer hier je nach Bedarf anpassen
+                            }
+                        ]
+                    }
+                    for customer in customers
+                ],
+                "vehicles": [
+                    {
+                        "start_location": {
+                            "latitude": vehicle.lat,
+                            "longitude": vehicle.lon
+                        },
+                        "end_location": {
+                            "latitude": vehicle.lat,
+                            "longitude": vehicle.lon
+                        }
+                    }
+                    for vehicle in vehicles
+                ]
+            }
+        }
     )
 
     try:
@@ -146,6 +154,22 @@ def optimize_route():
             'status': 'error',
             'message': str(e)
         })
+
+
+@app.route('/delete_customer/<int:customer_id>', methods=['DELETE'])
+def delete_customer(customer_id):
+    global customers
+    # Kunden aus der Liste löschen
+    customers = [customer for customer in customers if customer.id != customer_id]
+    return jsonify({'status': 'success', 'message': 'Customer deleted successfully'})
+
+
+@app.route('/delete_vehicle/<int:vehicle_id>', methods=['DELETE'])
+def delete_vehicle(vehicle_id):
+    global vehicles
+    # Fahrzeug aus der Liste löschen
+    vehicles = [vehicle for vehicle in vehicles if vehicle.id != vehicle_id]
+    return jsonify({'status': 'success', 'message': 'Vehicle deleted successfully'})
 
 
 if __name__ == '__main__':

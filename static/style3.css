@@ -1,151 +1,94 @@
-/* static/style.css */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
 body {
     font-family: Arial, sans-serif;
-    line-height: 1.6;
+    margin: 0;
+    padding: 20px;
     background-color: #f4f4f4;
-    color: #333;
 }
 
 .container {
-    max-width: 1200px;
+    max-width: 800px;
     margin: 0 auto;
+    background-color: white;
     padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 h1 {
     text-align: center;
-    color: #2c3e50;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 }
 
 .section {
-    background: white;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 30px;
 }
 
 h2 {
-    color: #2c3e50;
-    margin-bottom: 20px;
+    font-size: 1.5em;
+    margin-bottom: 10px;
 }
 
 .form-group {
-    margin-bottom: 15px;
+    margin-bottom: 10px;
 }
 
 label {
-    display: block;
+    font-size: 1em;
     margin-bottom: 5px;
-    font-weight: bold;
 }
 
 input[type="text"] {
     width: 100%;
     padding: 8px;
-    border: 1px solid #ddd;
+    font-size: 1em;
+    margin-top: 5px;
+    border: 1px solid #ccc;
     border-radius: 4px;
-    font-size: 16px;
 }
 
 button {
-    background-color: #3498db;
-    color: white;
     padding: 10px 20px;
+    font-size: 1.1em;
+    background-color: #4CAF50;
+    color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.3s;
 }
 
 button:hover {
-    background-color: #2980b9;
+    background-color: #45a049;
+}
+
+button.deleteCustomer,
+button.deleteVehicle {
+    background-color: #e74c3c;
+    margin-left: 10px;
+}
+
+button.deleteCustomer:hover,
+button.deleteVehicle:hover {
+    background-color: #c0392b;
 }
 
 .lists-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    display: flex;
+    justify-content: space-between;
 }
 
 .list {
-    background-color: #f8f9fa;
-    padding: 15px;
-    border-radius: 4px;
-}
-
-h3 {
-    color: #2c3e50;
-    margin-bottom: 10px;
-}
-
-ul {
-    list-style: none;
-}
-
-li {
-    padding: 8px 0;
-    border-bottom: 1px solid #ddd;
-}
-
-li:last-child {
-    border-bottom: none;
-}
-
-.route {
-    background-color: #f8f9fa;
-    padding: 15px;
-    margin-bottom: 15px;
-    border-radius: 4px;
-}
-
-.route h3 {
-    color: #3498db;
-    margin-bottom: 10px;
-}
-
-.route ol {
-    padding-left: 20px;
-}
-
-.route li {
-    margin-bottom: 5px;
-}
-
-#optimizeButton {
-    display: block;
-    width: 100%;
-    max-width: 300px;
-    margin: 0 auto;
-    background-color: #27ae60;
-}
-
-#optimizeButton:hover {
-    background-color: #219a52;
+    width: 45%;
 }
 
 #resultsSection {
-    margin-top: 30px;
+    margin-top: 40px;
 }
 
-@media (max-width: 768px) {
-    .lists-container {
-        grid-template-columns: 1fr;
-    }
+ul {
+    list-style-type: none;
+    padding: 0;
+}
 
-    .container {
-        padding: 10px;
-    }
-
-    .section {
-        padding: 15px;
-    }
+li {
+    margin: 10px 0;
 }
