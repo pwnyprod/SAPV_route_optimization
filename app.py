@@ -45,9 +45,16 @@ def geocode_address(address):
         return None, None
 
 
+@app.route('/get_markers', methods=['GET'])
+def get_markers():
+    markers = {
+        'customers': [{'name': c.name, 'lat': c.lat, 'lng': c.lon} for c in customers],
+        'vehicles': [{'name': v.name, 'lat': v.lat, 'lng': v.lon} for v in vehicles]
+    }
+    return jsonify(markers)
 @app.route('/')
 def index():
-    return render_template('index.html', customers=customers, vehicles=vehicles)
+    return render_template('index.html', customers=customers, vehicles=vehicles, google_maps_api_key=GOOGLE_MAPS_API_KEY)
 
 
 @app.route('/add_customer', methods=['POST'])
@@ -60,9 +67,12 @@ def add_customer():
     if lat and lon:
         customer = Customer(name, address, lat, lon)
         customers.append(customer)
-        return jsonify({'status': 'success', 'message': 'Customer added successfully'})
+        return jsonify({
+            'status': 'success',
+            'message': 'Customer added successfully',
+            'customerId': customer.id  # Füge die ID hinzu
+        })
     return jsonify({'status': 'error', 'message': 'Could not geocode address'})
-
 
 @app.route('/add_vehicle', methods=['POST'])
 def add_vehicle():
@@ -74,13 +84,16 @@ def add_vehicle():
     if lat and lon:
         vehicle = Vehicle(name, start_address, lat, lon)
         vehicles.append(vehicle)
-        return jsonify({'status': 'success', 'message': 'Vehicle added successfully'})
+        return jsonify({
+            'status': 'success',
+            'message': 'Vehicle added successfully',
+            'vehicleId': vehicle.id  # Füge die ID hinzu
+        })
     return jsonify({'status': 'error', 'message': 'Could not geocode address'})
 
 
 @app.route('/optimize_route', methods=['POST'])
 def optimize_route():
-    # Cloud Optimization Client initialisieren
     optimization_client = optimization_v1.FleetRoutingClient()
 
     if not customers or not vehicles:
@@ -99,7 +112,7 @@ def optimize_route():
                                     "latitude": customer.lat,
                                     "longitude": customer.lon
                                 },
-                                "duration": "150s"  # Du kannst die Dauer hier je nach Bedarf anpassen
+                                "duration": "150s"
                             }
                         ]
                     }
@@ -123,7 +136,6 @@ def optimize_route():
     )
 
     try:
-        # Optimierungsanfrage senden
         response = optimization_client.optimize_tours(fleet_routing_request)
 
         # Routen aus der Antwort extrahieren
@@ -131,6 +143,10 @@ def optimize_route():
         for route in response.routes:
             route_info = {
                 "vehicle": vehicles[route.vehicle_index].name,
+                "vehicle_start": {
+                    "lat": vehicles[route.vehicle_index].lat,
+                    "lng": vehicles[route.vehicle_index].lon
+                },
                 "stops": []
             }
 
@@ -139,7 +155,11 @@ def optimize_route():
                 if customer_index >= 0:
                     route_info["stops"].append({
                         "customer": customers[customer_index].name,
-                        "address": customers[customer_index].address
+                        "address": customers[customer_index].address,
+                        "location": {
+                            "lat": customers[customer_index].lat,
+                            "lng": customers[customer_index].lon
+                        }
                     })
 
             routes.append(route_info)
@@ -170,6 +190,7 @@ def delete_vehicle(vehicle_id):
     # Fahrzeug aus der Liste löschen
     vehicles = [vehicle for vehicle in vehicles if vehicle.id != vehicle_id]
     return jsonify({'status': 'success', 'message': 'Vehicle deleted successfully'})
+
 
 
 if __name__ == '__main__':

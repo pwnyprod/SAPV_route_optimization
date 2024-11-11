@@ -6,6 +6,7 @@
     <title>Routenoptimierung</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&callback=initMap" async defer></script>
 </head>
 <body>
     <div class="container">
@@ -75,6 +76,11 @@
 
         <div class="section">
             <button id="optimizeButton">Route optimieren</button>
+        </div>
+
+        <div class="section">
+            <h2>Karte</h2>
+            <div id="map" style="height: 500px; width: 100%; margin: 20px 0;"></div>
         </div>
 
         <div class="section" id="resultsSection" style="display: none;">
