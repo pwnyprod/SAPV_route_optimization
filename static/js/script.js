@@ -1,6 +1,6 @@
 let map;
 let markers = [];
-let routePolylines = [];
+let directionsRenderers = [];
 
 // Initialisiere Google Maps
 function initMap() {
@@ -114,8 +114,25 @@ function clearMarkers() {
 
 // Lösche alle Routen von der Karte
 function clearRoutes() {
-    routePolylines.forEach(polyline => polyline.setMap(null));
-    routePolylines = [];
+    directionsRenderers.forEach(renderer => renderer.setMap(null));
+    directionsRenderers = [];
+}
+
+// Promise-basierte Funktion für die Routenberechnung
+function calculateRoute(request, directionsRenderer) {
+    return new Promise((resolve, reject) => {
+        const directionsService = new google.maps.DirectionsService();
+
+        directionsService.route(request, (result, status) => {
+            if (status === google.maps.DirectionsStatus.OK) {
+                directionsRenderer.setDirections(result);
+                resolve(result);
+            } else {
+                console.error('Fehler bei der Routenberechnung:', status);
+                reject(status);
+            }
+        });
+    });
 }
 
 // Event Listener für das Kundenformular
@@ -176,15 +193,6 @@ document.getElementById('vehicleForm').addEventListener('submit', async (e) => {
     }
 });
 
-// Initialisiere Event Listener für bestehende Lösch-Buttons
-document.querySelectorAll('.deleteCustomer').forEach(button => {
-    button.addEventListener('click', handleDeleteCustomer);
-});
-
-document.querySelectorAll('.deleteVehicle').forEach(button => {
-    button.addEventListener('click', handleDeleteVehicle);
-});
-
 // Event Listener für Route optimieren
 document.getElementById('optimizeButton').addEventListener('click', async () => {
     clearRoutes();
@@ -194,7 +202,10 @@ document.getElementById('optimizeButton').addEventListener('click', async () => 
     const data = await response.json();
     if (data.status === 'success') {
         let routesHtml = '';
-        data.routes.forEach((route, index) => {
+
+        // Erstelle für jede Route einen eigenen DirectionsService und DirectionsRenderer
+        for (let routeIndex = 0; routeIndex < data.routes.length; routeIndex++) {
+            const route = data.routes[routeIndex];
             const routeColor = getRandomColor();
 
             // HTML für die Routenliste
@@ -204,30 +215,57 @@ document.getElementById('optimizeButton').addEventListener('click', async () => 
             });
             routesHtml += '</ul>';
 
-            // Route auf der Karte zeichnen
-            const waypoints = [
-                { lat: route.vehicle_start.lat, lng: route.vehicle_start.lng },
-                ...route.stops.map(stop => ({ lat: stop.location.lat, lng: stop.location.lng })),
-                { lat: route.vehicle_start.lat, lng: route.vehicle_start.lng } // Zurück zum Start
-            ];
-
-            const polyline = new google.maps.Polyline({
-                path: waypoints,
-                geodesic: true,
-                strokeColor: routeColor,
-                strokeOpacity: 1.0,
-                strokeWeight: 2
+            // Erstelle einen neuen DirectionsRenderer für diese Route
+            const directionsRenderer = new google.maps.DirectionsRenderer({
+                map: map,
+                suppressMarkers: true, // Unterdrücke die Standard-Marker
+                preserveViewport: true, // Behalte den aktuellen Kartenausschnitt
+                polylineOptions: {
+                    strokeColor: routeColor,
+                    strokeOpacity: 0.8,
+                    strokeWeight: 4
+                }
             });
 
-            polyline.setMap(map);
-            routePolylines.push(polyline);
-        });
+            directionsRenderers.push(directionsRenderer);
+
+            // Erstelle Wegpunkte für die Route
+            const waypoints = route.stops.map(stop => ({
+                location: new google.maps.LatLng(stop.location.lat, stop.location.lng),
+                stopover: true
+            }));
+
+            // Erstelle die Routenanfrage
+            const request = {
+                origin: new google.maps.LatLng(route.vehicle_start.lat, route.vehicle_start.lng),
+                destination: new google.maps.LatLng(route.vehicle_start.lat, route.vehicle_start.lng), // Zurück zum Startpunkt
+                waypoints: waypoints,
+                travelMode: google.maps.TravelMode.DRIVING,
+                optimizeWaypoints: false // Da die Optimierung bereits serverseitig erfolgt ist
+            };
+
+            // Nutze eine Promise-basierte Funktion für die Routenberechnung
+            try {
+                await calculateRoute(request, directionsRenderer);
+            } catch (error) {
+                console.error('Fehler bei Route', routeIndex + 1, ':', error);
+            }
+        }
 
         document.getElementById('routeResults').innerHTML = routesHtml;
         document.getElementById('resultsSection').style.display = 'block';
     } else {
         alert(data.message);
     }
+});
+
+// Initialisiere Event Listener für bestehende Lösch-Buttons
+document.querySelectorAll('.deleteCustomer').forEach(button => {
+    button.addEventListener('click', handleDeleteCustomer);
+});
+
+document.querySelectorAll('.deleteVehicle').forEach(button => {
+    button.addEventListener('click', handleDeleteVehicle);
 });
 
 // Zufällige Farbe für Routen generieren

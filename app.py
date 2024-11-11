@@ -114,6 +114,13 @@ def optimize_route():
                                 },
                                 "duration": "150s"
                             }
+                        ],
+                        # Jeder Stopp zählt als 1 Einheit
+                        "demands": [
+                            {
+                                "type": "visits",
+                                "value": "1"
+                            }
                         ]
                     }
                     for customer in customers
@@ -127,7 +134,15 @@ def optimize_route():
                         "end_location": {
                             "latitude": vehicle.lat,
                             "longitude": vehicle.lon
-                        }
+                        },
+                        # Maximale Anzahl Stopps pro Fahrzeug
+                        "capacities": [
+                            {
+                                "type": "visits",
+                                # Ceil(Gesamtanzahl Stopps / Anzahl Fahrzeuge)
+                                "value": str(-(-(len(customers)) // len(vehicles)))
+                            }
+                        ]
                     }
                     for vehicle in vehicles
                 ]
