@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Kundenliste</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .today-info {
+            background-color: #e8f5e9;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .back-link {
+            margin-bottom: 20px;
+        }
+        .visit-type {
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+        .visit-type.hb {
+            background-color: #e3f2fd;
+            color: #1565c0;
+        }
+        .visit-type.tk {
+            background-color: #f3e5f5;
+            color: #6a1b9a;
+        }
+        .visit-type.new {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <div class="back-link">
+        <a href="{{ url_for('upload_file') }}">← Zurück zum Upload</a>
+    </div>
+    
+    <h1>Kundenliste</h1>
+    
+    <div class="today-info">
+        <h2>Termine für {{ today }}</h2>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Adresse</th>
+                <th>Besuchsart</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for customer in customers %}
+            <tr>
+                <td>{{ customer.id }}</td>
+                <td>{{ customer.name }}</td>
+                <td>{{ customer.address }}</td>
+                <td>
+                    <span class="visit-type {% if customer.visit_type == 'HB' %}hb{% elif customer.visit_type == 'TK' %}tk{% else %}new{% endif %}">
+                        {{ customer.visit_type }}
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

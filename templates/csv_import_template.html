@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSV Upload</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .upload-form {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .messages {
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #f0f0f0;
+        }
+        .error {
+            color: red;
+        }
+        .today-info {
+            background-color: #e8f5e9;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .weekend-warning {
+            background-color: #ffebee;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>CSV Datei Upload</h1>
+
+    {% if today == "Wochenende" %}
+    <div class="weekend-warning">
+        <h2>Heute ist Wochenende</h2>
+        <p>An Wochenenden können keine Daten importiert werden.</p>
+    </div>
+    {% else %}
+    <div class="today-info">
+        <h2>Heute ist {{ today }}</h2>
+        <p>Es werden nur die Termine für heute importiert.</p>
+    </div>
+    {% endif %}
+
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <p>{{ message }}</p>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="upload-form">
+        <h2>CSV-Datei auswählen</h2>
+        <p>Die CSV-Datei muss folgende Spalten enthalten:</p>
+        <ul style="text-align: left;">
+            <li>Nachname, Vorname, Straße, Ort, PLZ</li>
+            <li>Montag, Dienstag, Mittwoch, Donnerstag, Freitag</li>
+            <li>Mögliche Besuchsarten: HB, TK, Neuaufnahme</li>
+        </ul>
+        <form method="post" enctype="multipart/form-data">
+            <input type="file" name="file" accept=".csv">
+            <br><br>
+            <input type="submit" value="Hochladen" {% if today == "Wochenende" %}disabled{% endif %}>
+        </form>
+    </div>
+
+    {% if customers %}
+    <p><a href="{{ url_for('show_customers') }}">Kundenliste anzeigen</a></p>
+    {% endif %}
+</body>
+</html>
