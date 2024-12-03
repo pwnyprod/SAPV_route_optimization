@@ -40,72 +40,6 @@ async function loadMarkers() {
     });
 }
 
-// Aktualisiere die Kundenliste
-function updateCustomerList(customer, customerId) {
-    const customerList = document.getElementById('customerList');
-    const li = document.createElement('li');
-    li.innerHTML = `
-        ${customer.name} - ${customer.address}
-        <button class="deleteCustomer" data-id="${customerId}">
-            <i class="fas fa-trash"></i>
-        </button>
-    `;
-
-    // Event Listener für den neuen Lösch-Button
-    const deleteButton = li.querySelector('.deleteCustomer');
-    deleteButton.addEventListener('click', handleDeleteCustomer);
-
-    customerList.appendChild(li);
-}
-
-// Aktualisiere die Fahrzeugliste
-function updateVehicleList(vehicle, vehicleId) {
-    const vehicleList = document.getElementById('vehicleList');
-    const li = document.createElement('li');
-    li.innerHTML = `
-        ${vehicle.name} - ${vehicle.start_address}
-        <button class="deleteVehicle" data-id="${vehicleId}">
-            <i class="fas fa-trash"></i>
-        </button>
-    `;
-
-    // Event Listener für den neuen Lösch-Button
-    const deleteButton = li.querySelector('.deleteVehicle');
-    deleteButton.addEventListener('click', handleDeleteVehicle);
-
-    vehicleList.appendChild(li);
-}
-
-// Handler für das Löschen eines Kunden
-async function handleDeleteCustomer(e) {
-    const customerId = e.target.closest('.deleteCustomer').getAttribute('data-id');
-    const response = await fetch(`/delete_customer/${customerId}`, {
-        method: 'DELETE',
-    });
-    const data = await response.json();
-    if (data.status === 'success') {
-        e.target.closest('li').remove();
-        loadMarkers(); // Aktualisiere die Marker
-    } else {
-        alert(data.message);
-    }
-}
-
-// Handler für das Löschen eines Fahrzeugs
-async function handleDeleteVehicle(e) {
-    const vehicleId = e.target.closest('.deleteVehicle').getAttribute('data-id');
-    const response = await fetch(`/delete_vehicle/${vehicleId}`, {
-        method: 'DELETE',
-    });
-    const data = await response.json();
-    if (data.status === 'success') {
-        e.target.closest('li').remove();
-        loadMarkers(); // Aktualisiere die Marker
-    } else {
-        alert(data.message);
-    }
-}
-
 // Lösche alle Marker von der Karte
 function clearMarkers() {
     markers.forEach(marker => marker.setMap(null));
@@ -134,64 +68,6 @@ function calculateRoute(request, directionsRenderer) {
         });
     });
 }
-
-// Event Listener für das Kundenformular
-document.getElementById('customerForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const customerName = document.getElementById('customerName').value;
-    const customerAddress = document.getElementById('customerAddress').value;
-
-    const response = await fetch('/add_customer', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            name: customerName,
-            address: customerAddress
-        })
-    });
-    const data = await response.json();
-    if (data.status === 'success') {
-        // Formular zurücksetzen
-        document.getElementById('customerForm').reset();
-
-        // Liste und Marker aktualisieren
-        updateCustomerList({name: customerName, address: customerAddress}, data.customerId);
-        loadMarkers();
-    } else {
-        alert(data.message);
-    }
-});
-
-// Event Listener für das Fahrzeugformular
-document.getElementById('vehicleForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const vehicleName = document.getElementById('vehicleName').value;
-    const startAddress = document.getElementById('startAddress').value;
-
-    const response = await fetch('/add_vehicle', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            name: vehicleName,
-            start_address: startAddress
-        })
-    });
-    const data = await response.json();
-    if (data.status === 'success') {
-        // Formular zurücksetzen
-        document.getElementById('vehicleForm').reset();
-
-        // Liste und Marker aktualisieren
-        updateVehicleList({name: vehicleName, start_address: startAddress}, data.vehicleId);
-        loadMarkers();
-    } else {
-        alert(data.message);
-    }
-});
 
 // Event Listener für Route optimieren
 document.getElementById('optimizeButton').addEventListener('click', async () => {
@@ -257,15 +133,6 @@ document.getElementById('optimizeButton').addEventListener('click', async () => 
     } else {
         alert(data.message);
     }
-});
-
-// Initialisiere Event Listener für bestehende Lösch-Buttons
-document.querySelectorAll('.deleteCustomer').forEach(button => {
-    button.addEventListener('click', handleDeleteCustomer);
-});
-
-document.querySelectorAll('.deleteVehicle').forEach(button => {
-    button.addEventListener('click', handleDeleteVehicle);
 });
 
 // Zufällige Farbe für Routen generieren

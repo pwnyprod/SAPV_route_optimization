@@ -14,6 +14,33 @@ body {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
+.weekend-warning, .messages, .upload-form, .upload-info {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+.weekend-warning {
+    background-color: #ffdddd;
+    border: 1px solid #ff0000;
+}
+.messages {
+    background-color: #ffffcc;
+    border: 1px solid #ffcc00;
+}
+.upload-form, .upload-info {
+    background-color: #f0f0f0;
+    border: 1px solid #cccccc;
+}
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+input[type="file"], input[type="submit"] {
+    margin-bottom: 10px;
+}
+
 h1 {
     text-align: center;
     margin-bottom: 20px;
@@ -58,17 +85,6 @@ button {
 
 button:hover {
     background-color: #45a049;
-}
-
-button.deleteCustomer,
-button.deleteVehicle {
-    background-color: #e74c3c;
-    margin-left: 10px;
-}
-
-button.deleteCustomer:hover,
-button.deleteVehicle:hover {
-    background-color: #c0392b;
 }
 
 .lists-container {

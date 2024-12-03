@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Kundenliste</title>
+    <title>Fahrzeugliste</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -26,14 +26,6 @@
         th {
             background-color: #f2f2f2;
         }
-        .visit-type {
-            padding: 5px;
-            border-radius: 3px;
-            font-weight: bold;
-        }
-        .hb { background-color: #90EE90; }
-        .tk { background-color: #87CEFA; }
-        .new { background-color: #FFB6C1; }
     </style>
 </head>
 <body>
@@ -41,37 +33,33 @@
         <a href="{{ url_for('upload_file') }}">← Zurück zum Upload</a>
     </div>
 
-    <h1>Kundenliste</h1>
+    <h1>Fahrzeugliste</h1>
 
-    <h2>Termine für {{ today }}</h2>
-
-    {% if customers %}
+    {% if vehicles %}
     <table>
         <thead>
             <tr>
                 <th>ID</th>
                 <th>Name</th>
-                <th>Adresse</th>
-                <th>Besuchsart</th>
+                <th>Startadresse</th>
+                <th>Breitengrad</th>
+                <th>Längengrad</th>
             </tr>
         </thead>
         <tbody>
-            {% for customer in customers %}
+            {% for vehicle in vehicles %}
             <tr>
-                <td>{{ customer.id }}</td>
-                <td>{{ customer.name }}</td>
-                <td>{{ customer.address }}</td>
-                <td>
-                    <span class="visit-type {% if customer.visit_type == 'HB' %}hb{% elif customer.visit_type == 'TK' %}tk{% else %}new{% endif %}">
-                        {{ customer.visit_type }}
-                    </span>
-                </td>
+                <td>{{ vehicle.id }}</td>
+                <td>{{ vehicle.name }}</td>
+                <td>{{ vehicle.start_address }}</td>
+                <td>{{ vehicle.lat }}</td>
+                <td>{{ vehicle.lon }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
     {% else %}
-    <p>Keine Kunden gefunden.</p>
+    <p>Keine Fahrzeuge gefunden.</p>
     {% endif %}
 </body>
 </html>
