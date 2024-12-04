@@ -2,6 +2,8 @@ import os
 from flask import Flask, render_template, request, jsonify, flash, redirect, url_for
 from google.cloud import optimization_v1
 import googlemaps
+from pyasn1_modules.rfc2985 import sequenceNumber
+
 from config import *
 import pandas as pd
 from werkzeug.utils import secure_filename
@@ -106,7 +108,7 @@ def handle_customer_upload(request):
 
         try:
             # CSV-Datei einlesen
-            df = pd.read_csv(filepath, encoding='utf-8-sig')
+            df = pd.read_csv(filepath, encoding='utf-8-sig', sep=';')
 
             # Überprüfen ob alle erforderlichen Spalten vorhanden sind
             required_columns = ['Nachname', 'Vorname', 'Straße', 'Ort', 'PLZ'] + list(WEEKDAY_MAPPING.values())
@@ -164,7 +166,7 @@ def handle_vehicle_upload(request):
 
         try:
             # CSV-Datei einlesen
-            df = pd.read_csv(filepath, encoding='utf-8-sig')
+            df = pd.read_csv(filepath, encoding='utf-8-sig', sep=';')
 
             # Überprüfen ob alle erforderlichen Spalten vorhanden sind
             required_columns = ['Nachname', 'Vorname', 'Straße', 'Ort', 'PLZ']
