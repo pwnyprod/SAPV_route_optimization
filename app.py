@@ -264,7 +264,13 @@ def optimize_route():
                                     "latitude": customer.lat,
                                     "longitude": customer.lon
                                 },
-                                "duration": "150s"
+                                "duration": (
+                                # Ist nur beispielhaft
+                                "10s" if customer.visit_type == "HB" else
+                                "20s" if customer.visit_type == "Neuaufnahme" else
+                                "30s" if customer.visit_type == "TK" else
+                                "150s"  # Fallback-Dauer, falls kein `visittype` definiert ist
+                            )
                             }
                         ],
                         # Jeder Stopp zählt als 1 Einheit
