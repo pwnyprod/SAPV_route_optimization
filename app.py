@@ -7,7 +7,7 @@ import pandas as pd
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 
-# Setze die Umgebungsvariable für Google Cloud Service Account
+# Setze die Umgebungsvariable für Google Cloud Service Account zum Auth
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = SERVICE_ACCOUNT_CREDENTIALS
 
 app = Flask(__name__)
