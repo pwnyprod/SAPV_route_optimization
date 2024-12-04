@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 
 # Setze die Umgebungsvariable für Google Cloud Service Account zum Auth
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = SERVICE_ACCOUNT_CREDENTIALS
-#
+
 app = Flask(__name__)
 app.secret_key = FLASK_SECRET_KEY
 
