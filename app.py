@@ -2,8 +2,6 @@ import os
 from flask import Flask, render_template, request, jsonify, flash, redirect, url_for
 from google.cloud import optimization_v1
 import googlemaps
-from pyasn1_modules.rfc2985 import sequenceNumber
-
 from config import *
 import pandas as pd
 from werkzeug.utils import secure_filename
