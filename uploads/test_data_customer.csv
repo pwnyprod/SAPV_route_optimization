@@ -1,21 +1,19 @@
 ﻿Nachname;Vorname;Straße;Ort;PLZ;Montag;Dienstag;Mittwoch;Donnerstag;Freitag
-Becker;Peter;Kirchweg 49;Hamburg;80949;Neuaufnahme;Neuaufnahme;Neuaufnahme;TK;HB
-Fischer;Sophia;Birkenweg 64;Köln;67897;HB;Neuaufnahme;Neuaufnahme;TK;HB
-Becker;Anna;Bahnhofstraße 28;Dortmund;20387;TK;Neuaufnahme;TK;Neuaufnahme;Neuaufnahme
-Schäfer;Chris;Gartenweg 94;Köln;74150;HB;HB;HB;TK;Neuaufnahme
-Weber;Laura;Birkenweg 91;Stuttgart;77014;Neuaufnahme;HB;HB;HB;Neuaufnahme
-Meyer;Michael;Gartenweg 90;Düsseldorf;62848;HB;HB;HB;TK;HB
-Fischer;Sophia;Kirchweg 43;München;41606;HB;HB;Neuaufnahme;TK;TK
-Becker;Max;Kirchweg 43;Düsseldorf;39316;Neuaufnahme;HB;HB;HB;Neuaufnahme
-Meyer;Eva;Hauptstraße 15;München;89645;HB;Neuaufnahme;TK;TK;TK
-Hoffmann;Michael;Hauptstraße 40;München;99441;HB;HB;HB;Neuaufnahme;Neuaufnahme
-Schneider;John;Gartenweg 97;Frankfurt;31006;Neuaufnahme;TK;Neuaufnahme;TK;Neuaufnahme
-Weber;Laura;Hauptstraße 10;Frankfurt;41301;TK;Neuaufnahme;TK;TK;Neuaufnahme
-Fischer;Eva;Ringstraße 44;Düsseldorf;56105;Neuaufnahme;TK;TK;Neuaufnahme;Neuaufnahme
-Schäfer;Anna;Bahnhofstraße 60;Köln;72132;HB;Neuaufnahme;HB;Neuaufnahme;HB
-Müller;Laura;Schulstraße 60;Frankfurt;39920;Neuaufnahme;HB;HB;TK;HB
-Becker;Anna;Schulstraße 8;München;32067;TK;HB;HB;Neuaufnahme;HB
-Wagner;Peter;Ringstraße 28;Hamburg;32323;TK;HB;Neuaufnahme;HB;TK
-Wagner;Michael;Schulstraße 2;Frankfurt;21908;Neuaufnahme;Neuaufnahme;Neuaufnahme;Neuaufnahme;TK
-Schneider;Michael;Birkenweg 28;München;52942;HB;TK;Neuaufnahme;Neuaufnahme;TK
-Schäfer;John;Ringstraße 97;Stuttgart;95285;TK;Neuaufnahme;HB;Neuaufnahme;TK
+Schneider;Michael;Königsberger Straße 3;Dormagen;41539;HB;TK;Neuaufnahme;Neuaufnahme;TK
+Fischer;Eva;Adlerstraße 1;Düsseldorf;40211;Neuaufnahme;TK;TK;Neuaufnahme;Neuaufnahme
+Schäfer;Chris;Lütticher Straße 1;Köln;50674;HB;HB;HB;TK;Neuaufnahme
+Dumm;Christian;Bachemer Straße 98;Köln;50931;HB;HB;HB;HB;HB
+Strolch;Johannes;Bachemer Straße 107;Köln;50931;HB;HB;HB;HB;HB
+Wagner;Michael;Königsberger Straße 1;Dormagen;41539;Neuaufnahme;Neuaufnahme;Neuaufnahme;Neuaufnahme;TK
+Weber;Laura;Adlerstraße 5;Düsseldorf;40211;TK;Neuaufnahme;TK;TK;Neuaufnahme
+Becker;Anna;Lütticher Straße 21;Köln;50674;TK;Neuaufnahme;TK;Neuaufnahme;Neuaufnahme
+Meyer;Eva;Adlerstraße 36;Düsseldorf;40211;HB;Neuaufnahme;TK;TK;TK
+Meyer;Michael;Lütticher Straße 12;Köln;50674;HB;HB;HB;TK;HB
+Becker;Max;Adlerstraße 3;Düsseldorf;40211;Neuaufnahme;HB;HB;HB;Neuaufnahme
+Schäfer;John;Königsberger Straße 5;Dormagen;41539;TK;Neuaufnahme;HB;Neuaufnahme;TK
+Becker;Anna;Mauerstraße 14;Wuppertal;42285;TK;HB;HB;Neuaufnahme;HB
+Wagner;Peter;Königsberger Straße 9;Dormagen;41539;TK;HB;Neuaufnahme;HB;TK
+Schneider;John;Adlerstraße 22;Düsseldorf;40211;Neuaufnahme;TK;Neuaufnahme;TK;Neuaufnahme
+Müller;Laura;Königsberger Straße 4A;Dormagen;41539;Neuaufnahme;HB;HB;TK;HB
+Hoffmann;Michael;Adlerstraße 22;Düsseldorf;40211;HB;HB;HB;Neuaufnahme;Neuaufnahme
+Schäfer;Anna;Königsberger Straße 6A;Dormagen;41539;HB;Neuaufnahme;HB;Neuaufnahme;HB
