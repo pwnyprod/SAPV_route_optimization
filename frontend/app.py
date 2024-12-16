@@ -133,7 +133,7 @@ def handle_customer_upload(request):
                 address = f"{row['Straße']}, {row['PLZ']} {row['Ort']}"
                 visit_type = row[current_weekday_name]
                 lat, lon = geocode_address(address)
-                customer = Customer(name=name, address=address, visit_type=visit_type, lat=lat, lon=lon)
+                customer = Customer(address=address, visit_type=visit_type, lat=lat, lon=lon, name=name)
                 customers.append(customer)
 
             if len(customers) == 0:
@@ -197,6 +197,9 @@ def handle_vehicle_upload(request):
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
+    if request.authorization != 'asfsafasfasf':
+        return jsonify('Fick dich!')
+
     if request.method == 'POST':
         # Überprüfen, ob es ein Wochenende ist
         if is_weekend():
