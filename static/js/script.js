@@ -2,6 +2,8 @@ let map;
 let markers = [];
 let directionsRenderers = [];
 
+window.onload = initMap;
+
 // Initialisiere Google Maps
 function initMap() {
     map = new google.maps.Map(document.getElementById('map'), {
