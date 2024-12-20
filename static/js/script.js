@@ -8,7 +8,9 @@ window.onload = initMap;
 function initMap() {
     map = new google.maps.Map(document.getElementById('map'), {
         center: { lat: 51.1657, lng: 10.4515 }, // Zentrum von Deutschland
-        zoom: 6
+        zoom: 6,
+        streetViewControl: false,
+        mapTypeControl: false
     });
     loadMarkers();
 }
