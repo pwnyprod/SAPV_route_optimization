@@ -251,69 +251,60 @@ def optimize_route():
 
     # Fleet Routing Request erstellen
     fleet_routing_request = optimization_v1.OptimizeToursRequest(
-        parent="projects/routenplanung-sapv",
-        model={
-            "shipments": [
-                {
-                    "pickups": [
-                        {
-                            "arrival_location": {
-                                "latitude": customer.lat,
-                                "longitude": customer.lon
-                            },
-                            "duration": (
+        {
+            "parent": "projects/routenplanung-sapv",
+            "model": {
+                "shipments": [
+                    {
+                        "pickups": [
+                            {
+                                "arrival_location": {
+                                    "latitude": customer.lat,
+                                    "longitude": customer.lon
+                                },
+                                "duration": (
+                                # Ist nur beispielhaft
                                 "10s" if customer.visit_type == "HB" else
                                 "20s" if customer.visit_type == "Neuaufnahme" else
                                 "30s" if customer.visit_type == "TK" else
-                                "150s"
+                                "150s"  # Fallback-Dauer, falls kein `visittype` definiert ist
                             )
-                        }
-                    ],
-                    "demands": [
-                        {
-                            "type": "visits",
-                            "value": "1"
-                        }
-                    ]
-                }
-                for customer in customers
-            ],
-            "vehicles": [
-                {
-                    "start_location": {
-                        "latitude": vehicle.lat,
-                        "longitude": vehicle.lon
-                    },
-                    "end_location": {
-                        "latitude": vehicle.lat,
-                        "longitude": vehicle.lon
-                    },
-                    "capacities": [
-                        {
-                            "type": "visits",
-                            "value": str(-(-(len(customers)) // len(vehicles)))  # Ceil(len(customers) / len(vehicles))
-                        }
-                    ]
-                }
-                for vehicle in vehicles
-            ],
-            "global_end_time": "2024-12-31T23:59:59Z",  # Optional: Zeitfenster für Routen
-        },
-        # ObjectiveFunction: Minimierung der Fahrzeit oder Distanz
-        objective={
-            "minimize_travel_distance": True,  # Minimiert die Gesamtdistanz
-            # Alternativ oder zusätzlich:
-            # "minimize_travel_time": True  # Minimiert die Gesamtfahrzeit
+                            }
+                        ],
+                        # Jeder Stopp zählt als 1 Einheit
+                        "demands": [
+                            {
+                                "type": "visits",
+                                "value": "1"
+                            }
+                        ]
+                    }
+                    for customer in customers
+                ],
+                "vehicles": [
+                    {
+                        "start_location": {
+                            "latitude": vehicle.lat,
+                            "longitude": vehicle.lon
+                        },
+                        "end_location": {
+                            "latitude": vehicle.lat,
+                            "longitude": vehicle.lon
+                        },
+                        # Maximale Anzahl Stopps pro Fahrzeug
+                        "capacities": [
+                            {
+                                "type": "visits",
+                                # Ceil(Gesamtanzahl Stopps / Anzahl Fahrzeuge)
+                                "value": str(-(-(len(customers)) // len(vehicles)))
+                            }
+                        ]
+                    }
+                    for vehicle in vehicles
+                ]
+            }
         }
     )
-
-    try:
-        # Anfrage an die Fleet Routing API senden
-        response = optimization_client.optimize_tours(request=fleet_routing_request)
-        return jsonify(response)  # Ergebnisse als JSON zurückgeben
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)})
-
 
     try:
         response = optimization_client.optimize_tours(fleet_routing_request)
