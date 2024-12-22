@@ -1,6 +1,6 @@
 import os
 from flask import Flask, render_template, request, jsonify, session
-from google.cloud import optimization_v1
+from google.maps import routeoptimization_v1
 from backend.FileHandler import *
 from config import *
 
@@ -73,13 +73,13 @@ def show_vehicles():
 
 @app.route('/optimize_route', methods=['POST'])
 def optimize_route():
-    optimization_client = optimization_v1.FleetRoutingClient()
+    optimization_client = routeoptimization_v1.RouteOptimizationClient()
 
     if not patients or not vehicles:
         return jsonify({'status': 'error', 'message': 'Need at least one patient and one vehicle'})
 
     # Fleet Routing Request erstellen
-    fleet_routing_request = optimization_v1.OptimizeToursRequest(
+    fleet_routing_request = routeoptimization_v1.OptimizeToursRequest(
         {
             "parent": "projects/routenplanung-sapv",
             "model": {
@@ -92,19 +92,12 @@ def optimize_route():
                                     "longitude": patient.lon
                                 },
                                 "duration": (
-                                # Ist nur beispielhaft
-                                "10s" if patient.visit_type == "HB" else
-                                "20s" if patient.visit_type == "Neuaufnahme" else
-                                "30s" if patient.visit_type == "TK" else
-                                "150s"  # Fallback-Dauer, falls kein `visittype` definiert ist
-                            )
-                            }
-                        ],
-                        # Jeder Stopp zählt als 1 Einheit
-                        "demands": [
-                            {
-                                "type": "visits",
-                                "value": "1"
+                                    # Ist nur beispielhaft
+                                    "10s" if patient.visit_type == "HB" else
+                                    "20s" if patient.visit_type == "Neuaufnahme" else
+                                    "30s" if patient.visit_type == "TK" else
+                                    "150s"  # Fallback-Dauer, falls kein `visittype` definiert ist
+                                )
                             }
                         ]
                     }
@@ -119,15 +112,7 @@ def optimize_route():
                         "end_location": {
                             "latitude": vehicle.lat,
                             "longitude": vehicle.lon
-                        },
-                        # Maximale Anzahl Stopps pro Fahrzeug
-                        "capacities": [
-                            {
-                                "type": "visits",
-                                # Ceil(Gesamtanzahl Stopps / Anzahl Fahrzeuge)
-                                "value": str(-(-(len(patients)) // len(vehicles)))
-                            }
-                        ]
+                        }
                     }
                     for vehicle in vehicles
                 ]
