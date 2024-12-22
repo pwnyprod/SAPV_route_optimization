@@ -22,11 +22,11 @@ async function loadMarkers() {
     const data = await response.json();
 
     // Füge Kunden-Marker hinzu
-    data.customers.forEach(customer => {
+    data.patients.forEach(patient => {
         const marker = new google.maps.Marker({
-            position: { lat: customer.lat, lng: customer.lng },
+            position: { lat: patient.lat, lng: patient.lng },
             map: map,
-            title: customer.name,
+            title: patient.name,
             icon: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
         });
         markers.push(marker);
@@ -91,7 +91,7 @@ document.getElementById('optimizeButton').addEventListener('click', async () => 
             // HTML für die Routenliste
             routesHtml += `<h3>Fahrzeug: ${route.vehicle}</h3><ul>`;
             route.stops.forEach(stop => {
-                routesHtml += `<li>${stop.customer} - ${stop.address}</li>`;
+                routesHtml += `<li>${stop.patient} - ${stop.address}</li>`;
             });
             routesHtml += '</ul>';
 
@@ -148,3 +148,38 @@ function getRandomColor() {
     }
     return color;
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const weekdaySelect = document.getElementById('weekdaySelect');
+    const tomorrowBtn = document.getElementById('tomorrowBtn');
+
+    // Array der Wochentage für einfaches Navigieren
+    const weekdays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+
+    // Event Listener für Änderungen im Dropdown
+    weekdaySelect.addEventListener('change', function() {
+        fetch('/update-weekday', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                weekday: this.value
+            })
+        })
+        .then(response => response.json())
+        .then(data => console.log('Server Response:', data))
+        .catch(error => console.error('Error:', error));
+    });
+
+    // Event Listener für den "Morgen" Button
+    tomorrowBtn.addEventListener('click', function() {
+        const currentIndex = weekdays.indexOf(weekdaySelect.value);
+        const nextIndex = (currentIndex + 1) % 7;
+        weekdaySelect.value = weekdays[nextIndex];
+
+        // Trigger das change Event manuell
+        const event = new Event('change');
+        weekdaySelect.dispatchEvent(event);
+    });
+});
