@@ -45,7 +45,6 @@
 
     <h2>Termine für {{ weekday }}</h2>
 
-    {% if customers %}
     <table>
         <thead>
             <tr>
@@ -58,24 +57,21 @@
             </tr>
         </thead>
         <tbody>
-            {% for customer in customers %}
+            {% for patient in patients %}
             <tr>
-                <td>{{ customer.id }}</td>
-                <td>{{ customer.name }}</td>
-                <td>{{ customer.address }}</td>
+                <td>{{ patient.id }}</td>
+                <td>{{ patient.name }}</td>
+                <td>{{ patient.address }}</td>
                 <td>
-                    <span class="visit-type {% if customer.visit_type == 'HB' %}hb{% elif customer.visit_type == 'TK' %}tk{% else %}new{% endif %}">
-                        {{ customer.visit_type }}
+                    <span class="visit-type {% if patient.visit_type == 'HB' %}hb{% elif patient.visit_type == 'TK' %}tk{% else %}new{% endif %}">
+                        {{ patient.visit_type }}
                     </span>
                 </td>
-                <td>{{ customer.lat }}</td>
-                <td>{{ customer.lon }}</td>
+                <td>{{ patient.lat }}</td>
+                <td>{{ patient.lon }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-    {% else %}
-    <p>Keine Kunden gefunden.</p>
-    {% endif %}
 </body>
 </html>

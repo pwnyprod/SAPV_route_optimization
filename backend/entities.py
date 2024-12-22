@@ -1,4 +1,6 @@
-from app import patients, vehicles
+# Listen zum Speichern von Kunden und Fahrzeugen
+patients = []
+vehicles = []
 
 
 class Entity:

@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session
 from google.cloud import optimization_v1
 from backend.FileHandler import *
 from config import *
@@ -12,9 +12,7 @@ app = Flask(__name__)
 app.secret_key = FLASK_SECRET_KEY
 
 
-# Listen zum Speichern von Kunden und Fahrzeugen
-patients = []
-vehicles = []
+
 
 
 @app.route('/update-weekday', methods=['POST'])
@@ -22,7 +20,12 @@ def update_weekday():
     data = request.get_json()
     selected_weekday = data.get('weekday')
 
+    # Speichern des Wochentags in der Sitzung
+    session['selected_weekday'] = selected_weekday
+
     return jsonify({"status": "success", "weekday": selected_weekday})
+
+
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
@@ -55,7 +58,7 @@ def get_markers():
 
 @app.route('/patients', methods=['GET', 'POST'])
 def show_patients():
-    selected_weekday = request.form.get('weekday') or request.args.get('weekday')
+    selected_weekday = get_selected_weekday()
 
     return render_template('show_patient.html',
                            patients=patients,

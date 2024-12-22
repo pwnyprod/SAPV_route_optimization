@@ -1,15 +1,16 @@
 import io
 import pandas as pd
-from flask import flash, redirect, url_for
+from flask import flash, redirect, url_for, session
 import googlemaps
 from config import GOOGLE_MAPS_API_KEY
-from backend.entities import Patient, Vehicle
-from app import selected_weekday, patients, vehicles
+from backend.entities import Patient, Vehicle, patients, vehicles
 
 # Google Maps Client initialisieren
 gmaps = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
 
-
+def get_selected_weekday():
+    # Zugriff auf den Wochentag in der Sitzung
+    return session.get('selected_weekday', 'Kein Wochentag gesetzt')
 
 # Konvertiert eine Adresse in Koordinaten
 def geocode_address(address):
@@ -54,6 +55,7 @@ def handle_patient_upload(request):
         flash('Keine Kundendatei ausgewählt')
         return redirect(request.url)
 
+
     if file and allowed_file(file.filename):
         try:
             # CSV-Datei direkt aus dem Speicher lesen
@@ -67,22 +69,22 @@ def handle_patient_upload(request):
                 return redirect(request.url)
 
             # Filtern der Daten für den ausgewählten Wochentag
-            df_filtered = df[df[selected_weekday].isin(VALID_VISIT_TYPES)].copy()
+            df_filtered = df[df[get_selected_weekday()].isin(VALID_VISIT_TYPES)].copy()
 
             # Daten in Customer-Objekte umwandeln
             patients.clear()  # Liste leeren, um Duplikate zu vermeiden
             for _, row in df_filtered.iterrows():
                 name = f"{row['Vorname']} {row['Nachname']}"
                 address = f"{row['Straße']}, {row['PLZ']} {row['Ort']}"
-                visit_type = row[selected_weekday]
+                visit_type = row[get_selected_weekday()]
                 lat, lon = geocode_address(address)
                 patient = Patient(name=name, address=address, visit_type=visit_type, lat=lat, lon=lon)
                 patients.append(patient)
 
             if len(patients) == 0:
-                flash(f'Keine Termine für {selected_weekday} gefunden.')
+                flash(f'Keine Termine für {get_selected_weekday()} gefunden.')
             else:
-                flash(f'{len(patients)} Kunden für {selected_weekday} erfolgreich importiert')
+                flash(f'{len(patients)} Kunden für {get_selected_weekday()} erfolgreich importiert')
             return redirect(url_for('show_patients'))
 
         except Exception as e:
@@ -101,9 +103,6 @@ def handle_vehicle_upload(request):
         flash('Keine Fahrzeugdatei ausgewählt')
         return redirect(request.url)
 
-    # Den ausgewählten Wochentag aus dem Dropdown-Menü holen
-    selected_weekday = request.form.get('weekday')  # Holen des Wochentags aus dem Dropdown-Menü
-
     if file and allowed_file(file.filename):
         try:
             # CSV-Datei direkt aus dem Speicher lesen
@@ -114,11 +113,6 @@ def handle_vehicle_upload(request):
             required_columns = ['Nachname', 'Vorname', 'Straße', 'Ort', 'PLZ']
             if not all(col in df.columns for col in required_columns):
                 flash('CSV-Datei hat nicht alle erforderlichen Spalten')
-                return redirect(request.url)
-
-            # Überprüfen, ob der ausgewählte Wochentag gültig ist
-            if selected_weekday not in WEEKDAY_MAPPING.values():
-                flash(f'Ungültiger Wochentag: {selected_weekday}')
                 return redirect(request.url)
 
             # Daten in Vehicle-Objekte umwandeln

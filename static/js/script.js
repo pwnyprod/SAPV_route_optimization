@@ -154,7 +154,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const tomorrowBtn = document.getElementById('tomorrowBtn');
 
     // Array der Wochentage für einfaches Navigieren
-    const weekdays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+    const weekdays = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 
     // Event Listener für Änderungen im Dropdown
     weekdaySelect.addEventListener('change', function() {
@@ -174,11 +174,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Event Listener für den "Morgen" Button
     tomorrowBtn.addEventListener('click', function() {
-        const currentIndex = weekdays.indexOf(weekdaySelect.value);
-        const nextIndex = (currentIndex + 1) % 7;
-        weekdaySelect.value = weekdays[nextIndex];
+        // Ermittle den aktuellen Tag
+        const today = new Date();
+        const todayIndex = today.getDay(); // Gibt den aktuellen Wochentag (0 = Sonntag, 1 = Montag, ...) zurück
+        const tomorrowIndex = (todayIndex + 1) % 7; // Berechne den morgigen Tag
 
-        // Trigger das change Event manuell
+        // Setze den morgigen Tag im Dropdown
+        weekdaySelect.value = weekdays[tomorrowIndex];
+
+        // Trigger das change Event manuell, um den Server zu benachrichtigen
         const event = new Event('change');
         weekdaySelect.dispatchEvent(event);
     });
