@@ -73,6 +73,7 @@ def show_vehicles():
 
 @app.route('/optimize_route', methods=['POST'])
 def optimize_route():
+
     optimization_client = routeoptimization_v1.RouteOptimizationClient()
 
     if not patients or not vehicles:
@@ -93,10 +94,10 @@ def optimize_route():
                                 },
                                 "duration": (
                                     # Ist nur beispielhaft
-                                    "10s" if patient.visit_type == "HB" else
-                                    "20s" if patient.visit_type == "Neuaufnahme" else
-                                    "30s" if patient.visit_type == "TK" else
-                                    "150s"  # Fallback-Dauer, falls kein `visittype` definiert ist
+                                    "2100s" if patient.visit_type == "HB" else # 35 Minuten
+                                    "7200s" if patient.visit_type == "Neuaufnahme" else # 120 Minuten
+                                    "0s" if patient.visit_type == "TK" else
+                                    "150s"
                                 )
                             }
                         ]
@@ -115,7 +116,8 @@ def optimize_route():
                         }
                     }
                     for vehicle in vehicles
-                ]
+                ],
+                "globalStartTime":
             }
         }
     )
