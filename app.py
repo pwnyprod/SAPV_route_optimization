@@ -2,6 +2,7 @@ import os
 from flask import Flask, render_template, request, jsonify, session
 from google.maps import routeoptimization_v1
 from backend.FileHandler import *
+from backend.RouteHandler import get_start_time, get_end_time
 from config import *
 
 
@@ -73,6 +74,8 @@ def show_vehicles():
 
 @app.route('/optimize_route', methods=['POST'])
 def optimize_route():
+    print(get_start_time(get_selected_weekday()))
+    print(get_end_time(get_selected_weekday()))
 
     optimization_client = routeoptimization_v1.RouteOptimizationClient()
 
@@ -117,7 +120,9 @@ def optimize_route():
                     }
                     for vehicle in vehicles
                 ],
-                "globalStartTime":
+                "global_start_time": get_start_time(get_selected_weekday()),
+                "global_end_time": get_end_time(get_selected_weekday()),
+                "global_duration_cost_per_hour": 1
             }
         }
     )

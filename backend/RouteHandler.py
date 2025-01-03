@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-def get_next_weekday(weekday_name: str) -> str:
+def get_next_weekday(weekday_name: str) -> datetime:
     # Wochentagszuordnung mit großgeschriebenem Anfangsbuchstaben
     weekdays = {
         'Montag': 0,
@@ -20,7 +20,7 @@ def get_next_weekday(weekday_name: str) -> str:
 
     # Überprüfen, ob der eingegebene Wochentag gültig ist
     if weekday_name not in weekdays:
-        return "Ungültiger Wochentag."
+        raise ValueError("Ungültiger Wochentag.")
 
     # Zielwochentag
     target_weekday = weekdays[weekday_name]
@@ -29,23 +29,19 @@ def get_next_weekday(weekday_name: str) -> str:
     days_difference = (target_weekday - current_weekday) % 7
 
     # Datum für den nächsten Zielwochentag berechnen
-    target_date = current_date + timedelta(days=days_difference)
-
-    # Datum im gewünschten Format zurückgeben (RFC3339 mit "Z")
-    return target_date.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+    return current_date + timedelta(days=days_difference)
 
 
+# Funktion für die Startzeit
 def get_start_time(weekday_name: str) -> str:
     target_date = get_next_weekday(weekday_name)
-    start_time = target_date.replace(hour=8, minute=0, second=0, microsecond=0)
+    start_time = datetime(target_date.year, target_date.month, target_date.day, 8, 0, 0)
     return start_time.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
 
-# Funktion für die Endzeit (20:00 Uhr)
+
+# Funktion für die Endzeit
 def get_end_time(weekday_name: str) -> str:
     target_date = get_next_weekday(weekday_name)
-    end_time = target_date.replace(hour=20, minute=0, second=0, microsecond=0)
+    end_time = datetime(target_date.year, target_date.month, target_date.day, 16, 0, 0)
     return end_time.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
 
-# Beispiele:
-print(get_start_time('Montag'))   # Gibt die Startzeit für den nächsten Montag (08:00 Uhr) zurück.
-print(get_end_time('Montag'))     # Gibt die Endzeit für den nächsten Montag (20:00 Uhr) zurück.
