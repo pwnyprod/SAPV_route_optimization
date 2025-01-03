@@ -116,13 +116,13 @@ def optimize_route():
                         "end_location": {
                             "latitude": vehicle.lat,
                             "longitude": vehicle.lon
-                        }
+                        },
+                        "cost_per_hour": 1
                     }
                     for vehicle in vehicles
                 ],
                 "global_start_time": get_start_time(get_selected_weekday()),
-                "global_end_time": get_end_time(get_selected_weekday()),
-                "global_duration_cost_per_hour": 1
+                "global_end_time": get_end_time(get_selected_weekday())
             }
         }
     )
