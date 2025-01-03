@@ -74,9 +74,6 @@ def show_vehicles():
 
 @app.route('/optimize_route', methods=['POST'])
 def optimize_route():
-    print(get_start_time(get_selected_weekday()))
-    print(get_end_time(get_selected_weekday()))
-
     optimization_client = routeoptimization_v1.RouteOptimizationClient()
 
     if not patients or not vehicles:
