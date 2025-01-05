@@ -79,50 +79,51 @@ def optimize_route():
     if not patients or not vehicles:
         return jsonify({'status': 'error', 'message': 'Need at least one patient and one vehicle'})
 
-    # Fleet Routing Request erstellen
-    fleet_routing_request = routeoptimization_v1.OptimizeToursRequest(
-        {
-            "parent": "projects/routenplanung-sapv",
-            "model": {
-                "shipments": [
-                    {
-                        "pickups": [
-                            {
-                                "arrival_location": {
-                                    "latitude": patient.lat,
-                                    "longitude": patient.lon
-                                },
-                                "duration": (
-                                    # Ist nur beispielhaft
-                                    "2100s" if patient.visit_type == "HB" else # 35 Minuten
-                                    "7200s" if patient.visit_type == "Neuaufnahme" else # 120 Minuten
-                                    "0s" if patient.visit_type == "TK" else
-                                    "150s"
-                                )
-                            }
-                        ]
-                    }
-                    for patient in patients
-                ],
-                "vehicles": [
-                    {
-                        "start_location": {
-                            "latitude": vehicle.lat,
-                            "longitude": vehicle.lon
-                        },
-                        "end_location": {
-                            "latitude": vehicle.lat,
-                            "longitude": vehicle.lon
-                        },
-                        "cost_per_hour": 1
-                    }
-                    for vehicle in vehicles
-                ],
-                "global_start_time": get_start_time(get_selected_weekday()),
-                "global_end_time": get_end_time(get_selected_weekday())
-            }
+    # 1) Patienten nach visit_type trennen
+    non_tk_patients = [p for p in patients if p.visit_type in ["Neuaufnahme", "HB"]]
+    tk_patients = [p for p in patients if p.visit_type == "TK"]
+
+    # 2) Baue das Request-Model **nur** mit non_tk_patients
+    fleet_routing_request = routeoptimization_v1.OptimizeToursRequest({
+        "parent": "projects/routenplanung-sapv",
+        "model": {
+            "shipments": [
+                {
+                    "pickups": [
+                        {
+                            "arrival_location": {
+                                "latitude": patient.lat,
+                                "longitude": patient.lon
+                            },
+                            "duration": (
+                                "2100s" if patient.visit_type == "HB" else
+                                "7200s" if patient.visit_type == "Neuaufnahme" else
+                                # Falls du einen sonstigen Fallback willst:
+                                "0s"
+                            )
+                        }
+                    ]
+                }
+                for patient in non_tk_patients
+            ],
+            "vehicles": [
+                {
+                    "start_location": {
+                        "latitude": vehicle.lat,
+                        "longitude": vehicle.lon
+                    },
+                    "end_location": {
+                        "latitude": vehicle.lat,
+                        "longitude": vehicle.lon
+                    },
+                    "cost_per_hour": 1
+                }
+                for vehicle in vehicles
+            ],
+            "global_start_time": get_start_time(get_selected_weekday()),
+            "global_end_time": get_end_time(get_selected_weekday())
         }
-    )
+    })
 
     try:
         response = optimization_client.optimize_tours(fleet_routing_request)
@@ -130,32 +131,47 @@ def optimize_route():
         # Routen aus der Antwort extrahieren
         routes = []
         for route in response.routes:
+            v_index = route.vehicle_index
             route_info = {
-                "vehicle": vehicles[route.vehicle_index].name,
+                "vehicle": vehicles[v_index].name,
                 "vehicle_start": {
-                    "lat": vehicles[route.vehicle_index].lat,
-                    "lng": vehicles[route.vehicle_index].lon
+                    "lat": vehicles[v_index].lat,
+                    "lng": vehicles[v_index].lon
                 },
                 "stops": []
             }
 
             for visit in route.visits:
-                patient_index = visit.shipment_index
+                patient_index = visit.shipment_index  # => Index in non_tk_patients
                 if patient_index >= 0:
+                    p = non_tk_patients[patient_index]
                     route_info["stops"].append({
-                        "patient": patients[patient_index].name,
-                        "address": patients[patient_index].address,
+                        "patient": p.name,
+                        "address": p.address,
+                        "visit_type": p.visit_type,
                         "location": {
-                            "lat": patients[patient_index].lat,
-                            "lng": patients[patient_index].lon
+                            "lat": p.lat,
+                            "lng": p.lon
                         }
                     })
 
             routes.append(route_info)
 
+        # 3) Hier hängen wir alle TK-Patient*innen **einfach** ans Ende der Antwort
+        #    - Sie werden NICHT geroutet, sondern nur aufgelistet
+        tk_list = [
+            {
+                "patient": tk.name,
+                "address": tk.address,
+                "visit_type": tk.visit_type
+            }
+            for tk in tk_patients
+        ]
+
         return jsonify({
             'status': 'success',
-            'routes': routes
+            'routes': routes,
+            'tk_patients': tk_list 
         })
 
     except Exception as e:
@@ -163,7 +179,6 @@ def optimize_route():
             'status': 'error',
             'message': str(e)
         })
-
 
 if __name__ == '__main__':
     app.run(debug=True)
