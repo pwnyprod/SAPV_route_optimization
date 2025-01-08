@@ -2,6 +2,7 @@ import io
 import pandas as pd
 from flask import flash, redirect, url_for, session
 import googlemaps
+
 from config import GOOGLE_MAPS_API_KEY
 from backend.entities import Patient, Vehicle, patients, vehicles
 
@@ -40,10 +41,8 @@ WEEKDAY_MAPPING = {
     4: 'Freitag'
 }
 
-
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
 
 def handle_patient_upload(request):
     if 'patient_file' not in request.files:
@@ -54,7 +53,6 @@ def handle_patient_upload(request):
     if file.filename == '':
         flash('Keine Kundendatei ausgewählt')
         return redirect(request.url)
-
 
     if file and allowed_file(file.filename):
         try:
@@ -91,8 +89,6 @@ def handle_patient_upload(request):
             flash(f'Fehler beim Verarbeiten der Kundendatei: {str(e)}')
             return redirect(request.url)
 
-
-
 def handle_vehicle_upload(request):
     if 'vehicle_file' not in request.files:
         flash('Keine Fahrzeugdatei ausgewählt')
@@ -106,24 +102,39 @@ def handle_vehicle_upload(request):
     if file and allowed_file(file.filename):
         try:
             # CSV-Datei direkt aus dem Speicher lesen
-            file_stream = io.StringIO(file.stream.read().decode('utf-8-sig'))  # Datei im Speicher lesen
+            file_stream = io.StringIO(file.stream.read().decode('utf-8-sig'))
             df = pd.read_csv(file_stream, encoding='utf-8-sig', sep=';')
 
             # Überprüfen ob alle erforderlichen Spalten vorhanden sind
-            required_columns = ['Nachname', 'Vorname', 'Straße', 'Ort', 'PLZ']
+            # HINZUFÜGEN: 'Stellenumfang' als Pflichtspalte
+            required_columns = ['Nachname', 'Vorname', 'Straße', 'Ort', 'PLZ', 'Stellenumfang']
             if not all(col in df.columns for col in required_columns):
-                flash('CSV-Datei hat nicht alle erforderlichen Spalten')
+                flash('CSV-Datei hat nicht alle erforderlichen Spalten (Nachname, Vorname, Straße, Ort, PLZ, Stellenumfang)')
                 return redirect(request.url)
 
             # Daten in Vehicle-Objekte umwandeln
             vehicles.clear()  # Liste leeren, um Duplikate zu vermeiden
             for _, row in df.iterrows():
                 lat, lon = geocode_address(f"{row['Straße']}, {row['PLZ']} {row['Ort']}")
+                
+                # Stellenumfang auslesen (z.B. 0..100), wenn leer => Standard=100
+                try:
+                    stellenumfang_val = float(row['Stellenumfang'])
+                except:
+                    stellenumfang_val = 100.0  # Fallback
+
+                if stellenumfang_val < 0:  
+                    stellenumfang_val = 0
+                elif stellenumfang_val > 100:
+                    stellenumfang_val = 100
+
+                # Vehicle-Objekt inkl. stellenumfang
                 vehicle = Vehicle(
                     name=f"{row['Vorname']} {row['Nachname']}",
                     start_address=f"{row['Straße']}, {row['PLZ']} {row['Ort']}",
                     lat=lat,
-                    lon=lon
+                    lon=lon,
+                    stellenumfang=stellenumfang_val  # <-- NEU: Speichern im Objekt
                 )
                 vehicles.append(vehicle)
 
