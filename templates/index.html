@@ -41,7 +41,7 @@
             <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
                 <input type="hidden" name="upload_type" value="patients">
                 <label for="patient_file">Kundendatei auswählen:</label>
-                <input type="file" name="patient_file" id="patient_file" accept=".csv">
+                <input type="file" name="patient_file" id="patient_file" accept=".xlsx,.xls">
                 <input type="submit" value="Kunden importieren">
             </form>
             {% if patients %}
@@ -54,7 +54,7 @@
             <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
                 <input type="hidden" name="upload_type" value="vehicles">
                 <label for="vehicle_file">Fahrzeugdatei auswählen:</label>
-                <input type="file" name="vehicle_file" id="vehicle_file" accept=".csv">
+                <input type="file" name="vehicle_file" id="vehicle_file" accept=".xlsx,.xls">
                 <input type="submit" value="Fahrzeuge importieren">
             </form>
             {% if vehicles %}
@@ -63,9 +63,9 @@
         </div>
 
         <div class="upload-info">
-            <h2>CSV-Datei Anforderungen</h2>
+            <h2>Excel-Datei Anforderungen</h2>
             <h3>Kundendatei</h3>
-            <p>Die CSV-Datei muss folgende Spalten enthalten:</p>
+            <p>Die Excel-Datei muss folgende Spalten enthalten:</p>
             <ul>
                 <li>Nachname, Vorname, Straße, Ort, PLZ</li>
                 <li>Montag, Dienstag, Mittwoch, Donnerstag, Freitag</li>
@@ -73,10 +73,11 @@
             </ul>
 
             <h3>Fahrzeugdatei</h3>
-            <p>Die CSV-Datei muss folgende Spalten enthalten:</p>
+            <p>Die Excel-Datei muss folgende Spalten enthalten:</p>
             <ul>
                 <li>Nachname, Vorname</li>
                 <li>Straße, Ort, PLZ</li>
+                <li>Stellenumfang</li>
             </ul>
         </div>
 

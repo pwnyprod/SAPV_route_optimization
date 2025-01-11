@@ -2,6 +2,8 @@ import io
 import pandas as pd
 from flask import flash, redirect, url_for, session
 import googlemaps
+import os
+from werkzeug.utils import secure_filename
 
 from config import GOOGLE_MAPS_API_KEY
 from backend.entities import Patient, Vehicle, patients, vehicles
@@ -10,10 +12,8 @@ from backend.entities import Patient, Vehicle, patients, vehicles
 gmaps = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
 
 def get_selected_weekday():
-    # Zugriff auf den Wochentag in der Sitzung
     return session.get('selected_weekday', 'Kein Wochentag gesetzt')
 
-# Konvertiert eine Adresse in Koordinaten
 def geocode_address(address):
     try:
         result = gmaps.geocode(address)
@@ -27,12 +27,18 @@ def geocode_address(address):
 
 # Konfiguration für File Upload
 UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'csv'}
+ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
+
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Definition der erlaubten Besuchsarten
 VALID_VISIT_TYPES = {'HB', 'TK', 'Neuaufnahme'}
 
-# Mapping von Wochentagen (0 = Montag, 6 = Sonntag) zu Spaltennamen
+# Mapping von Wochentagen
 WEEKDAY_MAPPING = {
     0: 'Montag',
     1: 'Dienstag',
@@ -40,9 +46,6 @@ WEEKDAY_MAPPING = {
     3: 'Donnerstag',
     4: 'Freitag'
 }
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def handle_patient_upload(request):
     if 'patient_file' not in request.files:
@@ -56,24 +59,19 @@ def handle_patient_upload(request):
 
     if file and allowed_file(file.filename):
         try:
-            # CSV-Datei direkt aus dem Speicher lesen
-            file_stream = io.StringIO(file.stream.read().decode('utf-8-sig'))  # Datei im Speicher lesen
-            df = pd.read_csv(file_stream, sep=';')
+            df = pd.read_excel(file)
 
-            # Überprüfen ob alle erforderlichen Spalten vorhanden sind
-            required_columns = ['Nachname', 'Vorname', 'Straße', 'Ort', 'PLZ'] + list(WEEKDAY_MAPPING.values())
+            required_columns = ['Nachname', 'Vorname', 'Strasse', 'Ort', 'PLZ'] + list(WEEKDAY_MAPPING.values())
             if not all(col in df.columns for col in required_columns):
-                flash('CSV-Datei hat nicht alle erforderlichen Spalten')
+                flash('Excel-Datei hat nicht alle erforderlichen Spalten')
                 return redirect(request.url)
 
-            # Filtern der Daten für den ausgewählten Wochentag
             df_filtered = df[df[get_selected_weekday()].isin(VALID_VISIT_TYPES)].copy()
 
-            # Daten in Customer-Objekte umwandeln
-            patients.clear()  # Liste leeren, um Duplikate zu vermeiden
+            patients.clear()
             for _, row in df_filtered.iterrows():
                 name = f"{row['Vorname']} {row['Nachname']}"
-                address = f"{row['Straße']}, {row['PLZ']} {row['Ort']}"
+                address = f"{row['Strasse']}, {row['PLZ']} {row['Ort']}"
                 visit_type = row[get_selected_weekday()]
                 lat, lon = geocode_address(address)
                 patient = Patient(name=name, address=address, visit_type=visit_type, lat=lat, lon=lon)
@@ -101,40 +99,33 @@ def handle_vehicle_upload(request):
 
     if file and allowed_file(file.filename):
         try:
-            # CSV-Datei direkt aus dem Speicher lesen
-            file_stream = io.StringIO(file.stream.read().decode('utf-8-sig'))
-            df = pd.read_csv(file_stream, encoding='utf-8-sig', sep=';')
+            df = pd.read_excel(file)
 
-            # Überprüfen ob alle erforderlichen Spalten vorhanden sind
-            # HINZUFÜGEN: 'Stellenumfang' als Pflichtspalte
-            required_columns = ['Nachname', 'Vorname', 'Straße', 'Ort', 'PLZ', 'Stellenumfang']
+            required_columns = ['Nachname', 'Vorname', 'Strasse', 'Ort', 'PLZ', 'Stellenumfang']
             if not all(col in df.columns for col in required_columns):
-                flash('CSV-Datei hat nicht alle erforderlichen Spalten (Nachname, Vorname, Straße, Ort, PLZ, Stellenumfang)')
+                flash('Excel-Datei hat nicht alle erforderlichen Spalten')
                 return redirect(request.url)
 
-            # Daten in Vehicle-Objekte umwandeln
-            vehicles.clear()  # Liste leeren, um Duplikate zu vermeiden
+            vehicles.clear()
             for _, row in df.iterrows():
-                lat, lon = geocode_address(f"{row['Straße']}, {row['PLZ']} {row['Ort']}")
+                lat, lon = geocode_address(f"{row['Strasse']}, {row['PLZ']} {row['Ort']}")
                 
-                # Stellenumfang auslesen (z.B. 0..100), wenn leer => Standard=100
                 try:
                     stellenumfang_val = float(row['Stellenumfang'])
                 except:
-                    stellenumfang_val = 100.0  # Fallback
+                    stellenumfang_val = 100.0
 
                 if stellenumfang_val < 0:  
                     stellenumfang_val = 0
                 elif stellenumfang_val > 100:
                     stellenumfang_val = 100
 
-                # Vehicle-Objekt inkl. stellenumfang
                 vehicle = Vehicle(
                     name=f"{row['Vorname']} {row['Nachname']}",
-                    start_address=f"{row['Straße']}, {row['PLZ']} {row['Ort']}",
+                    start_address=f"{row['Strasse']}, {row['PLZ']} {row['Ort']}",
                     lat=lat,
                     lon=lon,
-                    stellenumfang=stellenumfang_val  # <-- NEU: Speichern im Objekt
+                    stellenumfang=stellenumfang_val
                 )
                 vehicles.append(vehicle)
 
