@@ -108,3 +108,103 @@ ul {
 li {
     margin: 10px 0;
 }
+
+.routes-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 20px;
+}
+
+.route-card {
+    flex: 1;
+    min-width: 300px;
+    max-width: 400px;
+    border: 2px solid;
+    border-radius: 8px;
+    padding: 15px;
+    background: white;
+}
+
+.route-card h3 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.stops-container {
+    min-height: 100px;
+    padding: 10px;
+    background: #f5f5f5;
+    border-radius: 4px;
+}
+
+.stop-card {
+    display: flex;
+    gap: 10px;
+    background: white;
+    padding: 10px;
+    margin: 8px 0;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    cursor: move;
+    transition: transform 0.2s ease;
+}
+
+.stop-card.dragging {
+    opacity: 0.5;
+    transform: scale(1.02);
+}
+
+.stop-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    background: #666;
+    color: white;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
+.patient-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.visit-type {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.tk-card {
+    border-color: #666 !important;
+    background: #f8f8f8;
+}
+
+.tk-stop {
+    background-color: #f8f8f8;
+    border-left: 4px solid #666;
+}
+
+.tk-stop .stop-number {
+    display: none;
+}
+
+.drop-indicator {
+    height: 2px;
+    background-color: #2196F3;
+    margin: 10px 0;
+    transition: all 0.2s ease;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}

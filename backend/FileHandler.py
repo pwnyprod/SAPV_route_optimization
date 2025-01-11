@@ -59,7 +59,7 @@ def handle_patient_upload(request):
 
     if file and allowed_file(file.filename):
         try:
-            df = pd.read_excel(file)
+            df = pd.read_excel(file, dtype=str)
 
             required_columns = ['Nachname', 'Vorname', 'Strasse', 'Ort', 'PLZ'] + list(WEEKDAY_MAPPING.values())
             if not all(col in df.columns for col in required_columns):
@@ -99,7 +99,7 @@ def handle_vehicle_upload(request):
 
     if file and allowed_file(file.filename):
         try:
-            df = pd.read_excel(file)
+            df = pd.read_excel(file, dtype=str)
 
             required_columns = ['Nachname', 'Vorname', 'Strasse', 'Ort', 'PLZ', 'Stellenumfang']
             if not all(col in df.columns for col in required_columns):
@@ -111,9 +111,9 @@ def handle_vehicle_upload(request):
                 lat, lon = geocode_address(f"{row['Strasse']}, {row['PLZ']} {row['Ort']}")
                 
                 try:
-                    stellenumfang_val = float(row['Stellenumfang'])
+                    stellenumfang_val = int(float(row['Stellenumfang']))
                 except:
-                    stellenumfang_val = 100.0
+                    stellenumfang_val = 100
 
                 if stellenumfang_val < 0:  
                     stellenumfang_val = 0

@@ -12,6 +12,9 @@ os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = SERVICE_ACCOUNT_CREDENTIALS
 app = Flask(__name__)
 app.secret_key = FLASK_SECRET_KEY
 
+# Globale Variable für optimierte Routen
+optimized_routes = []
+
 def get_selected_weekday():
     return session.get('selected_weekday', 'Montag')
 
@@ -95,14 +98,15 @@ def optimize_route():
         shipments.append({"pickups": pickups})
 
     # 3) Fahrzeuge: Berücksichtige Stellenumfang
-    #    Stellenumfang = 0..100 -> 0..8 h
-    #    => max_duration.seconds
     vehicles_model = []
     for v in vehicles:
-        # Falls Stellenumfang nicht gesetzt ist, default=100
-        stellenumfang = getattr(v, 'Stellenumfang', 100) or 100  
-        # Umwandeln in Sekunden
-        max_seconds = int((stellenumfang / 100.0) * 8 * 3600)
+        stellenumfang = getattr(v, 'stellenumfang', 100)  
+        
+        # Berechne Sekunden (7 Stunden * Stellenumfang%)
+        seconds = int((stellenumfang / 100.0) * 7 * 3600)
+        
+        # Formatiere als Duration-String
+        duration_string = f"{seconds}s"
 
         vehicle_model = {
             "start_location": {
@@ -115,10 +119,7 @@ def optimize_route():
             },
             "cost_per_hour": 1,
             "route_duration_limit": {
-                # Nur setzen, wenn > 0 (sonst "verboten" / 0s)
-                "max_duration": {
-                    "seconds": max_seconds
-                }
+                "max_duration": duration_string
             }
         }
         vehicles_model.append(vehicle_model)
@@ -139,7 +140,7 @@ def optimize_route():
         response = optimization_client.optimize_tours(fleet_routing_request)
 
         # Routen extrahieren
-        routes = []
+        optimized_routes = []
         for i, route in enumerate(response.routes):
             start_dt = route.vehicle_start_time
             end_dt   = route.vehicle_end_time
@@ -180,7 +181,7 @@ def optimize_route():
                         }
                     })
 
-            routes.append(route_info)
+            optimized_routes.append(route_info)
 
         # 5) TK-Fälle als Liste
         tk_list = [
@@ -194,10 +195,65 @@ def optimize_route():
 
         return jsonify({
             'status': 'success',
-            'routes': routes,
+            'routes': optimized_routes,
             'tk_patients': tk_list
         })
 
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+@app.route('/update_routes', methods=['POST'])
+def update_routes():
+    try:
+        global optimized_routes
+        data = request.get_json()
+        optimized_routes = []
+        
+        # Reguläre Routen verarbeiten
+        for route in data.get('optimized_routes', []):
+            if route['vehicle'] != 'tk':  # Ignoriere die TK-Route
+                # Trenne normale Stopps und TK-Stopps
+                regular_stops = [s for s in route['stops'] if s['visit_type'] != 'TK']
+                tk_stops = [s for s in route['stops'] if s['visit_type'] == 'TK']
+                
+                # Füge vehicle_start Informationen hinzu
+                vehicle = next((v for v in vehicles if v.name == route['vehicle']), None)
+                if vehicle:
+                    route_info = {
+                        'vehicle': route['vehicle'],
+                        'vehicle_start': {
+                            'lat': vehicle.lat,
+                            'lng': vehicle.lon
+                        },
+                        'stops': regular_stops,
+                        'tk_stops': tk_stops  # TK-Stopps pro Route
+                    }
+                    optimized_routes.append(route_info)
+        
+        # Sammle alle verbleibenden TK-Patienten
+        remaining_tk = [
+            {
+                "patient": p.name,
+                "address": p.address,
+                "visit_type": p.visit_type,
+                "location": {
+                    "lat": p.lat,
+                    "lng": p.lon
+                }
+            }
+            for p in patients 
+            if p.visit_type == "TK" and not any(
+                p.name == stop['patient'] 
+                for route in optimized_routes 
+                for stop in route.get('tk_stops', [])
+            )
+        ]
+        
+        return jsonify({
+            'status': 'success',
+            'routes': optimized_routes,
+            'tk_patients': remaining_tk  # Nicht zugeordnete TK-Patienten
+        })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
 
