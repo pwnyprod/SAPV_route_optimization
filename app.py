@@ -156,14 +156,21 @@ def optimize_route():
                       f"Dauer: {duration_hrs:.2f} h, "
                       f"Name: {vehicles[route.vehicle_index].name}")
             else:
+                duration_hrs = 0
                 print(f"Fahrzeug {i} => None start/end (nicht genutzt?)")
 
             v_index = route.vehicle_index
+            vehicle = vehicles[v_index]
+            # Berechne max_hours basierend auf Stellenumfang (100% = 7h)
+            max_hours = round((getattr(vehicle, 'stellenumfang', 100) / 100.0) * 7, 2)
+            
             route_info = {
-                "vehicle": vehicles[v_index].name,
+                "vehicle": vehicle.name,
+                "duration_hrs": round(duration_hrs, 2),
+                "max_hours": max_hours,  # Füge max_hours hinzu
                 "vehicle_start": {
-                    "lat": vehicles[v_index].lat,
-                    "lng": vehicles[v_index].lon
+                    "lat": vehicle.lat,
+                    "lng": vehicle.lon
                 },
                 "stops": []
             }

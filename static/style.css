@@ -208,3 +208,9 @@ li {
     50% { opacity: 1; }
     100% { opacity: 0.6; }
 }
+
+.duration {
+    font-size: 0.9em;
+    color: #666;
+    margin-left: 8px;
+}

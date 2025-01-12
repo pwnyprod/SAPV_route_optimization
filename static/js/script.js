@@ -157,7 +157,7 @@ function displayRoutes(data) {
         
         // Fahrzeug-Header
         const vehicleHeader = document.createElement('h3');
-        vehicleHeader.textContent = `Fahrzeug: ${route.vehicle}`;
+        vehicleHeader.innerHTML = `Fahrzeug: ${route.vehicle} <span class="duration">(${route.duration_hrs || 0} / ${route.max_hours}h)</span>`;
         routeCard.appendChild(vehicleHeader);
         
         // Container für verschiebbare Stopps
