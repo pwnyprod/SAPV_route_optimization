@@ -158,11 +158,10 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function displayRoutes(data) {
-    clearRoutes(); // Alte Routen entfernen
+    clearRoutes();
     const routeResults = document.getElementById('routeResults');
     routeResults.innerHTML = '';
     
-    // Container für alle Routen
     const routesContainer = document.createElement('div');
     routesContainer.className = 'routes-container';
     
@@ -183,19 +182,20 @@ function displayRoutes(data) {
         stopsContainer.className = 'stops-container';
         stopsContainer.setAttribute('data-vehicle', route.vehicle);
         
-        // Einzelne Stopps
-        if (route.stops && route.stops.length > 0 && route.vehicle !== 'tk') {  // Prüfe auf nicht-TK
-            // Wegpunkte für die Route
-            const waypoints = route.stops.map(s => ({
+        // Filtere TK-Stopps für die Route aus
+        const regularStops = route.stops.filter(stop => stop.visit_type !== 'TK');
+        
+        // Nur reguläre Stopps für die Wegpunkte und Route verwenden
+        if (regularStops.length > 0) {
+            const waypoints = regularStops.map(s => ({
                 location: new google.maps.LatLng(s.location.lat, s.location.lng),
                 stopover: true
             }));
 
-            // Start- & End-Ort (selbes Fahrzeug)
+            // Route berechnen und anzeigen
             const origin = new google.maps.LatLng(route.vehicle_start.lat, route.vehicle_start.lng);
             const destination = origin;
 
-            // DirectionsRenderer
             const directionsRenderer = new google.maps.DirectionsRenderer({
                 map: map,
                 suppressMarkers: true,
@@ -208,7 +208,6 @@ function displayRoutes(data) {
             });
             directionsRenderers.push(directionsRenderer);
 
-            // DirectionsRequest
             const request = {
                 origin: origin,
                 destination: destination,
@@ -217,44 +216,43 @@ function displayRoutes(data) {
                 optimizeWaypoints: false
             };
 
-            // Route berechnen und anzeigen
             calculateRoute(request, directionsRenderer).catch(err => {
                 console.error("Fehler bei der Routenberechnung:", err);
             });
-
-            // Stopps in der Liste anzeigen
-            route.stops.forEach((stop, stopIndex) => {
-                const stopCard = document.createElement('div');
-                stopCard.className = 'stop-card';
-                stopCard.draggable = true;
-                stopCard.innerHTML = `
-                    <div class="stop-number">${stopIndex + 1}</div>
-                    <div class="patient-info">
-                        <strong>${stop.patient}</strong>
-                        <div>${stop.address}</div>
-                        <div class="visit-type">${stop.visit_type || ''}</div>
-                        <div style="display:none" data-lat="${stop.location.lat}" data-lng="${stop.location.lng}"></div>
-                    </div>
-                `;
-                
-                stopCard.addEventListener('dragstart', handleDragStart);
-                stopCard.addEventListener('dragend', handleDragEnd);
-                
-                stopsContainer.appendChild(stopCard);
-            });
         }
+
+        // Alle Stopps anzeigen
+        route.stops.forEach((stop, stopIndex) => {
+            const stopCard = document.createElement('div');
+            stopCard.className = `stop-card${stop.visit_type === 'TK' ? ' tk-stop' : ''}`;
+            stopCard.draggable = true;
+            stopCard.innerHTML = `
+                ${stop.visit_type !== 'TK' ? `<div class="stop-number">${stopIndex + 1}</div>` : ''}
+                <div class="patient-info">
+                    <strong>${stop.patient}</strong>
+                    <div>${stop.address}</div>
+                    <div class="visit-type">${stop.visit_type || ''}</div>
+                    <div style="display:none" data-lat="${stop.location.lat}" data-lng="${stop.location.lng}"></div>
+                </div>
+            `;
+            
+            stopCard.addEventListener('dragstart', handleDragStart);
+            stopCard.addEventListener('dragend', handleDragEnd);
+            
+            stopsContainer.appendChild(stopCard);
+        });
         
         routeCard.appendChild(stopsContainer);
         routesContainer.appendChild(routeCard);
     });
     
-    // TK-Patienten separat anzeigen
+    // Nicht zugeordnete TK-Patienten separat anzeigen
     if (data.tk_patients && data.tk_patients.length > 0) {
         const tkCard = document.createElement('div');
         tkCard.className = 'route-card tk-card';
         
         const tkHeader = document.createElement('h3');
-        tkHeader.textContent = 'TK-Fälle';
+        tkHeader.textContent = 'Nicht zugeordnete TK-Fälle';
         tkCard.appendChild(tkHeader);
         
         const tkContainer = document.createElement('div');
@@ -269,7 +267,8 @@ function displayRoutes(data) {
                 <div class="patient-info">
                     <strong>${tk.patient}</strong>
                     <div>${tk.address}</div>
-                    <div class="visit-type">${tk.visit_type}</div>
+                    <div class="visit-type">TK</div>
+                    <div style="display:none" data-lat="${tk.location?.lat}" data-lng="${tk.location?.lng}"></div>
                 </div>
             `;
             
@@ -285,7 +284,6 @@ function displayRoutes(data) {
     
     routeResults.appendChild(routesContainer);
     
-    // Drag & Drop für Container
     document.querySelectorAll('.stops-container').forEach(container => {
         container.addEventListener('dragover', handleDragOver);
         container.addEventListener('drop', handleDrop);
@@ -427,48 +425,71 @@ function updateStopNumbers() {
 // Neue Funktion zur Aktualisierung der optimierten Routen
 function updateOptimizedRoutes() {
     const optimized_routes = [];
+    const assigned_tk_stops = new Set(); // Sammle zugewiesene TK-Stopps
     
-    // Alle Route-Container durchgehen (außer TK)
-    document.querySelectorAll('.stops-container:not([data-vehicle="tk"])').forEach((container, index) => {
+    // Sammle alle regulären Routen und ihre TK-Stopps
+    document.querySelectorAll('.stops-container:not([data-vehicle="tk"])').forEach((container) => {
         const vehicleName = container.getAttribute('data-vehicle');
         const routeInfo = {
             vehicle: vehicleName,
-            vehicle_start: null,  // Wird vom Server gesetzt
+            vehicle_start: null,
             stops: []
         };
         
-        // Alle Stopps sammeln
+        // Sammle alle Stopps
         container.querySelectorAll('.stop-card').forEach(stop => {
             const locationDiv = stop.querySelector('[data-lat]');
             const isTKStop = stop.classList.contains('tk-stop');
+            
             const stopInfo = {
                 patient: stop.querySelector('strong').textContent,
                 address: stop.querySelector('.patient-info div').textContent,
-                visit_type: stop.querySelector('.visit-type').textContent,
-                location: {
+                visit_type: isTKStop ? "TK" : stop.querySelector('.visit-type').textContent,
+                location: locationDiv ? {
                     lat: parseFloat(locationDiv.dataset.lat),
                     lng: parseFloat(locationDiv.dataset.lng)
-                }
+                } : null
             };
             
+            // Füge den Stopp zu stops hinzu
+            routeInfo.stops.push(stopInfo);
+            
+            // Merke dir zugewiesene TK-Stopps
             if (isTKStop) {
-                routeInfo.tk_stops = routeInfo.tk_stops || [];
-                routeInfo.tk_stops.push(stopInfo);
-            } else {
-                routeInfo.stops.push(stopInfo);
+                assigned_tk_stops.add(stopInfo.patient);
             }
         });
         
         optimized_routes.push(routeInfo);
     });
     
-    // An den Server senden und Routen neu zeichnen
+    // Sammle nicht zugewiesene TK-Stopps
+    const unassigned_tk_stops = [];
+    document.querySelector('.stops-container[data-vehicle="tk"]')?.querySelectorAll('.stop-card').forEach(stop => {
+        const patient = stop.querySelector('strong').textContent;
+        if (!assigned_tk_stops.has(patient)) {
+            const locationDiv = stop.querySelector('[data-lat]');
+            unassigned_tk_stops.push({
+                patient: patient,
+                address: stop.querySelector('.patient-info div').textContent,
+                visit_type: "TK",
+                location: locationDiv ? {
+                    lat: parseFloat(locationDiv.dataset.lat),
+                    lng: parseFloat(locationDiv.dataset.lng)
+                } : null
+            });
+        }
+    });
+
     fetch('/update_routes', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ optimized_routes: optimized_routes })
+        body: JSON.stringify({ 
+            optimized_routes: optimized_routes,
+            unassigned_tk_stops: unassigned_tk_stops
+        })
     })
     .then(response => response.json())
     .then(data => {

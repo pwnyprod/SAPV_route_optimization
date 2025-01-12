@@ -212,10 +212,6 @@ def update_routes():
         # Reguläre Routen verarbeiten
         for route in data.get('optimized_routes', []):
             if route['vehicle'] != 'tk':  # Ignoriere die TK-Route
-                # Trenne normale Stopps und TK-Stopps
-                regular_stops = [s for s in route['stops'] if s['visit_type'] != 'TK']
-                tk_stops = [s for s in route['stops'] if s['visit_type'] == 'TK']
-                
                 # Füge vehicle_start Informationen hinzu
                 vehicle = next((v for v in vehicles if v.name == route['vehicle']), None)
                 if vehicle:
@@ -225,34 +221,17 @@ def update_routes():
                             'lat': vehicle.lat,
                             'lng': vehicle.lon
                         },
-                        'stops': regular_stops,
-                        'tk_stops': tk_stops  # TK-Stopps pro Route
+                        'stops': route['stops']  # Alle Stopps (inkl. TK) sind bereits hier
                     }
                     optimized_routes.append(route_info)
         
-        # Sammle alle verbleibenden TK-Patienten
-        remaining_tk = [
-            {
-                "patient": p.name,
-                "address": p.address,
-                "visit_type": p.visit_type,
-                "location": {
-                    "lat": p.lat,
-                    "lng": p.lon
-                }
-            }
-            for p in patients 
-            if p.visit_type == "TK" and not any(
-                p.name == stop['patient'] 
-                for route in optimized_routes 
-                for stop in route.get('tk_stops', [])
-            )
-        ]
+        # Verarbeite die nicht zugewiesenen TK-Stopps
+        unassigned_tk_stops = data.get('unassigned_tk_stops', [])
         
         return jsonify({
             'status': 'success',
             'routes': optimized_routes,
-            'tk_patients': remaining_tk  # Nicht zugeordnete TK-Patienten
+            'tk_patients': unassigned_tk_stops  # Verwende direkt die nicht zugewiesenen TK-Stopps
         })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
