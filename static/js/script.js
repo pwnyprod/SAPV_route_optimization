@@ -409,9 +409,9 @@ function handleDrop(e) {
             // Entferne Drop-Indikatoren
             container.querySelectorAll('.drop-indicator').forEach(el => el.remove());
             
+            // Füge das Element hinzu
             if (isTKStop) {
                 container.appendChild(draggingElement);
-                updateOptimizedRoutes();
             } else {
                 const afterElement = getDropPosition(container, e.clientY, isTKStop);
                 if (afterElement) {
@@ -424,21 +424,18 @@ function handleDrop(e) {
                         container.appendChild(draggingElement);
                     }
                 }
-                
-                updateStopNumbers();
+            }
+            
+            updateStopNumbers();
 
-                // Nach dem Drop für nicht-TK Container:
-                const routeCard = container.closest('.route-card');
+            // Aktualisiere die Routen für alle Container
+            document.querySelectorAll('.stops-container:not([data-vehicle="tk"])').forEach(cont => {
+                const routeCard = cont.closest('.route-card');
                 const routeColor = routeCard.style.borderColor;
-                
-                // Lösche zuerst alle bestehenden Routen
-                clearRoutes();
-                
-                const regularStops = [...container.querySelectorAll('.stop-card:not(.tk-stop)')];
+                const regularStops = [...cont.querySelectorAll('.stop-card:not(.tk-stop)')];
                 
                 if (regularStops.length === 0) {
                     updateRouteDuration(routeCard, 0);
-                    updateOptimizedRoutes();
                 } else {
                     const origin = new google.maps.LatLng(
                         routeCard.dataset.vehicleStartLat, 
@@ -461,15 +458,14 @@ function handleDrop(e) {
                         optimizeWaypoints: false
                     };
 
-                    calculateRoute(request, routeColor, routeCard)
-                        .then(() => {
-                            updateOptimizedRoutes();
-                        })
-                        .catch(err => {
-                            console.error("Fehler bei der Routenberechnung:", err);
-                        });
+                    calculateRoute(request, routeColor, routeCard);
                 }
-            }
+            });
+
+            // Warte kurz, bis alle Routen berechnet wurden
+            setTimeout(() => {
+                updateOptimizedRoutes();
+            }, 100);
         }
     }
 }
@@ -570,4 +566,20 @@ function updateOptimizedRoutes() {
         }
     })
     .catch(error => console.error('Error updating routes:', error));
+}
+
+// Fügen Sie ein Event-Listener für das Drag-Ende hinzu
+document.querySelectorAll('.stop-card').forEach(stopCard => {
+    stopCard.addEventListener('dragend', () => {
+        // Aktualisieren Sie die Routen nach dem Drag-Ende
+        updateOptimizedRoutes();
+    });
+});
+
+// Diese Funktion fehlt, wird aber in handleDrop verwendet
+function updateRouteDuration(routeCard, durationHrs = 0) {
+    const header = routeCard.querySelector('h3');
+    const maxHours = header.querySelector('.duration').textContent.split('/')[1].trim();
+    header.querySelector('.duration').textContent = `(${durationHrs} / ${maxHours}h)`;
+    routeCard.dataset.durationHrs = durationHrs;
 }
