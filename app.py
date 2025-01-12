@@ -220,27 +220,29 @@ def update_routes():
         
         # Reguläre Routen verarbeiten
         for route in data.get('optimized_routes', []):
-            if route['vehicle'] != 'tk':  # Ignoriere die TK-Route
-                # Füge vehicle_start Informationen hinzu
+            if route['vehicle'] != 'tk':
                 vehicle = next((v for v in vehicles if v.name == route['vehicle']), None)
                 if vehicle:
                     route_info = {
                         'vehicle': route['vehicle'],
+                        'duration_hrs': route['duration_hrs'],  # Neue berechnete Dauer
+                        'max_hours': route['max_hours'],        # Maximale Stunden
                         'vehicle_start': {
                             'lat': vehicle.lat,
                             'lng': vehicle.lon
                         },
-                        'stops': route['stops']  # Alle Stopps (inkl. TK) sind bereits hier
+                        'stops': route['stops']
                     }
                     optimized_routes.append(route_info)
         
+        print(optimized_routes)
         # Verarbeite die nicht zugewiesenen TK-Stopps
         unassigned_tk_stops = data.get('unassigned_tk_stops', [])
         
         return jsonify({
             'status': 'success',
             'routes': optimized_routes,
-            'tk_patients': unassigned_tk_stops  # Verwende direkt die nicht zugewiesenen TK-Stopps
+            'tk_patients': unassigned_tk_stops
         })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})

@@ -11,6 +11,12 @@ const COLORS = [
   "#008B8B","#696969","#708090","#F08080","#808000","#00FF00"
 ];
 
+// Mapping der Besuchstypen zu Verweilzeiten in Sekunden
+const VISIT_DWELL_TIMES = {
+    'HB': 35 * 60,          // 35 Minuten in Sekunden
+    'Neuaufnahme': 120 * 60 // 120 Minuten in Sekunden
+};
+
 window.onload = initMap();
 
 // Google Maps initialisieren und Marker laden
@@ -70,19 +76,50 @@ function clearRoutes() {
 }
 
 // Route berechnen mit DirectionsService
-function calculateRoute(request, directionsRenderer) {
-  return new Promise((resolve, reject) => {
-    const directionsService = new google.maps.DirectionsService();
-    directionsService.route(request, (result, status) => {
-      if (status === "OK") {
-        directionsRenderer.setDirections(result);
-        resolve(result);
-      } else {
-        console.error("Fehler bei der Routenberechnung:", status);
-        reject(status);
-      }
+function calculateRoute(request, routeColor, routeCard) {
+    return new Promise((resolve, reject) => {
+        const directionsService = new google.maps.DirectionsService();
+        
+        // Erstelle DirectionsRenderer hier
+        const directionsRenderer = new google.maps.DirectionsRenderer({
+            map: map,
+            suppressMarkers: true,
+            preserveViewport: true,
+            polylineOptions: {
+                strokeColor: routeColor,
+                strokeOpacity: 0.8,
+                strokeWeight: 4
+            }
+        });
+        directionsRenderers.push(directionsRenderer);
+
+        directionsService.route(request, (result, status) => {
+            if (status === "OK") {
+                directionsRenderer.setDirections(result);
+                
+                // Berechne Gesamtzeit (Fahrt + Besuche)
+                let totalDuration = 0;
+                result.routes[0].legs.forEach(leg => {
+                    totalDuration += leg.duration.value;
+                });
+                
+                const stops = routeCard.querySelector('.stops-container').querySelectorAll('.stop-card:not(.tk-stop)');
+                stops.forEach(stop => {
+                    const visitType = stop.querySelector('.visit-type').textContent;
+                    totalDuration += VISIT_DWELL_TIMES[visitType] || 0;
+                });
+                
+                const durationHrs = Math.round((totalDuration / 3600) * 100) / 100;
+                // Speichere die berechnete Duration im Dataset
+                routeCard.dataset.durationHrs = durationHrs;
+                
+                resolve(result);
+            } else {
+                console.error("Fehler bei der Routenberechnung:", status);
+                reject(status);
+            }
+        });
     });
-  });
 }
 
 // Handle optimize button click
@@ -155,10 +192,13 @@ function displayRoutes(data) {
         routeCard.className = 'route-card';
         routeCard.style.borderColor = routeColor;
         
-        // Fahrzeug-Header
+        // Fahrzeug-Header mit Duration aus dem Backend
         const vehicleHeader = document.createElement('h3');
-        vehicleHeader.innerHTML = `Fahrzeug: ${route.vehicle} <span class="duration">(${route.duration_hrs || 0} / ${route.max_hours}h)</span>`;
+        vehicleHeader.innerHTML = `${route.vehicle} <span class="duration">(${route.duration_hrs || 0} / ${route.max_hours}h)</span>`;
         routeCard.appendChild(vehicleHeader);
+        
+        // Speichere die aktuelle Duration im Dataset
+        routeCard.dataset.durationHrs = route.duration_hrs || 0;
         
         // Container für verschiebbare Stopps
         const stopsContainer = document.createElement('div');
@@ -199,7 +239,7 @@ function displayRoutes(data) {
                 optimizeWaypoints: false
             };
 
-            calculateRoute(request, directionsRenderer).catch(err => {
+            calculateRoute(request, routeColor, routeCard).catch(err => {
                 console.error("Fehler bei der Routenberechnung:", err);
             });
         }
@@ -227,6 +267,8 @@ function displayRoutes(data) {
         
         routeCard.appendChild(stopsContainer);
         routesContainer.appendChild(routeCard);
+        routeCard.dataset.vehicleStartLat = route.vehicle_start.lat;
+        routeCard.dataset.vehicleStartLng = route.vehicle_start.lng;
     });
     
     // Nicht zugeordnete TK-Patienten separat anzeigen
@@ -369,6 +411,7 @@ function handleDrop(e) {
             
             if (isTKStop) {
                 container.appendChild(draggingElement);
+                updateOptimizedRoutes();
             } else {
                 const afterElement = getDropPosition(container, e.clientY, isTKStop);
                 if (afterElement) {
@@ -381,9 +424,52 @@ function handleDrop(e) {
                         container.appendChild(draggingElement);
                     }
                 }
+                
+                updateStopNumbers();
+
+                // Nach dem Drop für nicht-TK Container:
+                const routeCard = container.closest('.route-card');
+                const routeColor = routeCard.style.borderColor;
+                
+                // Lösche zuerst alle bestehenden Routen
+                clearRoutes();
+                
+                const regularStops = [...container.querySelectorAll('.stop-card:not(.tk-stop)')];
+                
+                if (regularStops.length === 0) {
+                    updateRouteDuration(routeCard, 0);
+                    updateOptimizedRoutes();
+                } else {
+                    const origin = new google.maps.LatLng(
+                        routeCard.dataset.vehicleStartLat, 
+                        routeCard.dataset.vehicleStartLng
+                    );
+                    
+                    const waypoints = regularStops.map(stop => ({
+                        location: new google.maps.LatLng(
+                            parseFloat(stop.querySelector('[data-lat]').dataset.lat),
+                            parseFloat(stop.querySelector('[data-lat]').dataset.lng)
+                        ),
+                        stopover: true
+                    }));
+
+                    const request = {
+                        origin: origin,
+                        destination: origin,
+                        waypoints: waypoints,
+                        travelMode: google.maps.TravelMode.DRIVING,
+                        optimizeWaypoints: false
+                    };
+
+                    calculateRoute(request, routeColor, routeCard)
+                        .then(() => {
+                            updateOptimizedRoutes();
+                        })
+                        .catch(err => {
+                            console.error("Fehler bei der Routenberechnung:", err);
+                        });
+                }
             }
-            updateStopNumbers();
-            updateOptimizedRoutes();
         }
     }
 }
@@ -408,14 +494,17 @@ function updateStopNumbers() {
 // Optimierte Routen aktualisieren
 function updateOptimizedRoutes() {
     const optimized_routes = [];
-    const assigned_tk_stops = new Set(); // Sammle zugewiesene TK-Stopps
+    const assigned_tk_stops = new Set();
     
-    // Sammle alle regulären Routen und ihre TK-Stopps
     document.querySelectorAll('.stops-container:not([data-vehicle="tk"])').forEach((container) => {
+        const routeCard = container.closest('.route-card');
         const vehicleName = container.getAttribute('data-vehicle');
+
         const routeInfo = {
             vehicle: vehicleName,
             vehicle_start: null,
+            duration_hrs: parseFloat(routeCard.dataset.durationHrs || 0),
+            max_hours: parseFloat(routeCard.querySelector('.duration').textContent.split('/')[1].replace('h)', '')),
             stops: []
         };
         
@@ -434,10 +523,8 @@ function updateOptimizedRoutes() {
                 } : null
             };
             
-            // Füge den Stopp zu stops hinzu
             routeInfo.stops.push(stopInfo);
             
-            // Merke dir zugewiesene TK-Stopps
             if (isTKStop) {
                 assigned_tk_stops.add(stopInfo.patient);
             }
@@ -478,6 +565,7 @@ function updateOptimizedRoutes() {
     .then(data => {
         if (data.status === 'success') {
             clearRoutes();
+            // Zeige die Routen mit den aktualisierten Werten aus dem Backend an
             displayRoutes(data);
         }
     })
