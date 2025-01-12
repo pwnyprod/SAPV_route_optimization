@@ -4,11 +4,14 @@ let markers = [];               // Alle aktuellen Marker
 let directionsRenderers = [];   // DirectionsRenderer für Routen
 let optimized_routes = [];      // Optimierte Routen
 
-// Feste Farbpalette (20 Farben)
+// Feste Farbpalette (30 gut unterscheidbare Farben)
 const COLORS = [
-  "#FF0000","#0000FF","#008000","#FFD700","#FF00FF","#00CED1","#FFA500",
-  "#800080","#8B4513","#000000","#C71585","#6495ED","#DC143C","#B8860B",
-  "#008B8B","#696969","#708090","#F08080","#808000","#00FF00"
+    "#FF0000", "#0000FF", "#00FF00", "#FFA500", "#800080",
+    "#FFD700", "#FF1493", "#00CED1", "#32CD32", "#FF4500",
+    "#4169E1", "#8B4513", "#FF69B4", "#4B0082", "#00FF7F",
+    "#CD853F", "#00BFFF", "#FF6347", "#7B68EE", "#2E8B57",
+    "#DAA520", "#9370DB", "#3CB371", "#FF8C00", "#BA55D3",
+    "#20B2AA", "#CD5C5C", "#6B8E23", "#C71585", "#87CEEB"
 ];
 
 // Mapping der Besuchstypen zu Verweilzeiten in Sekunden
@@ -142,38 +145,59 @@ document.getElementById('optimizeButton').addEventListener('click', async () => 
   }
 });
 
+// Funktion zum Aktualisieren des Wochentags
+async function updateWeekdayDisplay() {
+    try {
+        const response = await fetch('/get-current-weekday');
+        const data = await response.json();
+        const weekdaySelect = document.getElementById('weekdaySelect');
+        weekdaySelect.value = data.weekday;
+    } catch (err) {
+        console.error("Error getting current weekday:", err);
+    }
+}
+
 // Handle DOM events (weekday selection etc.)
 document.addEventListener('DOMContentLoaded', function() {
-  // Falls du initMap() hier manuell aufrufen willst (keine callback=initMap)
-  initMap();
+    // Initialisiere den aktuellen Wochentag
+    updateWeekdayDisplay();
 
-  const weekdaySelect = document.getElementById('weekdaySelect');
-  const tomorrowBtn = document.getElementById('tomorrowBtn');
+    // Falls du initMap() hier manuell aufrufen willst (keine callback=initMap)
+    initMap();
 
-  // Array der Wochentage
-  const weekdays = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+    const weekdaySelect = document.getElementById('weekdaySelect');
+    const tomorrowBtn = document.getElementById('tomorrowBtn');
 
-  // Dropdown -> Server
-  weekdaySelect.addEventListener('change', function() {
-    fetch('/update-weekday', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ weekday: this.value })
-    })
-    .then(res => res.json())
-    .then(data => console.log("Server Response:", data))
-    .catch(err => console.error("Error updating weekday:", err));
-  });
+    // Array der Wochentage
+    const weekdays = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 
-  // Button "Morgen"
-  tomorrowBtn.addEventListener('click', function() {
-    const today = new Date();
-    const todayIndex = today.getDay();
-    const tomorrowIndex = (todayIndex + 1) % 7;
-    weekdaySelect.value = weekdays[tomorrowIndex];
-    // Trigger 'change'
-    weekdaySelect.dispatchEvent(new Event('change'));
-  });
+    // Dropdown -> Server
+    weekdaySelect.addEventListener('change', async function() {
+        try {
+            const response = await fetch('/update-weekday', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ weekday: this.value })
+            });
+            const data = await response.json();
+            console.log("Server Response:", data);
+            
+            // Aktualisiere den angezeigten Wochentag
+            await updateWeekdayDisplay();
+        } catch (err) {
+            console.error("Error updating weekday:", err);
+        }
+    });
+
+    // Button "Morgen"
+    tomorrowBtn.addEventListener('click', async function() {
+        const today = new Date();
+        const todayIndex = today.getDay();
+        const tomorrowIndex = (todayIndex + 1) % 7;
+        weekdaySelect.value = weekdays[tomorrowIndex];
+        // Trigger 'change'
+        weekdaySelect.dispatchEvent(new Event('change'));
+    });
 });
 
 // Optimierte Routen anzeigen
@@ -195,7 +219,11 @@ function displayRoutes(data) {
         // Fahrzeug-Header mit Duration aus dem Backend
         const vehicleHeader = document.createElement('h3');
         const durationColor = (route.duration_hrs || 0) <= route.max_hours ? 'green' : 'red';
-        vehicleHeader.innerHTML = `${route.vehicle} <span class="duration" style="color: ${durationColor}">(${route.duration_hrs || 0} / ${route.max_hours}h)</span>`;
+        vehicleHeader.innerHTML = `
+            ${route.vehicle}
+            <div style="font-size: 0.8em; color: #666; margin: 2px 0;">${route.funktion || ''}</div>
+            <span class="duration" style="color: ${durationColor}">(${route.duration_hrs || 0} / ${route.max_hours}h)</span>
+        `;
         routeCard.appendChild(vehicleHeader);
         
         // Speichere die aktuelle Duration im Dataset

@@ -18,12 +18,36 @@ optimized_routes = []
 def get_selected_weekday():
     return session.get('selected_weekday', 'Montag')
 
+def set_selected_weekday(weekday):
+    if 'selected_weekday' not in session:
+        session['selected_weekday'] = 'Montag'
+    else:
+        session['selected_weekday'] = weekday
+
 @app.route('/update-weekday', methods=['POST'])
 def update_weekday():
-    data = request.get_json()
-    selected_weekday = data.get('weekday')
-    session['selected_weekday'] = selected_weekday
-    return jsonify({"status": "success", "weekday": selected_weekday})
+    try:
+        data = request.get_json()
+        weekday = data.get('weekday')
+        if weekday:
+            set_selected_weekday(weekday)
+            # Lade die Patienten für den neuen Wochentag neu
+            reload_patients_for_weekday(weekday)
+            return jsonify({
+                'status': 'success', 
+                'weekday': weekday,
+                'patient_count': len(patients)
+            })
+        return jsonify({'status': 'error', 'message': 'No weekday provided'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+def reload_patients_for_weekday(weekday):
+    """Lädt die Patienten für den angegebenen Wochentag neu"""
+    global patients
+    patients.clear()
+    if hasattr(app, 'last_patient_upload'):
+        handle_patient_upload(app.last_patient_upload, weekday)
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
@@ -166,8 +190,9 @@ def optimize_route():
             
             route_info = {
                 "vehicle": vehicle.name,
+                "funktion": vehicle.funktion,
                 "duration_hrs": round(duration_hrs, 2),
-                "max_hours": max_hours,  # Füge max_hours hinzu
+                "max_hours": max_hours,
                 "vehicle_start": {
                     "lat": vehicle.lat,
                     "lng": vehicle.lon
@@ -246,6 +271,10 @@ def update_routes():
         })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
+
+@app.route('/get-current-weekday')
+def get_current_weekday():
+    return jsonify({'weekday': get_selected_weekday()})
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -33,7 +33,7 @@
         }
         .hb { background-color: #90EE90; }
         .tk { background-color: #87CEFA; }
-        .new { background-color: #FFB6C1; }
+        .neuaufnahme { background-color: #FFB6C1; }
     </style>
 </head>
 <body>
@@ -48,12 +48,10 @@
     <table>
         <thead>
             <tr>
-                <th>ID</th>
+                <th>Nr.</th>
                 <th>Name</th>
                 <th>Adresse</th>
                 <th>Besuchsart</th>
-                <th>Breitengrad</th>
-                <th>Längengrad</th>
             </tr>
         </thead>
         <tbody>
@@ -63,12 +61,10 @@
                 <td>{{ patient.name }}</td>
                 <td>{{ patient.address }}</td>
                 <td>
-                    <span class="visit-type {% if patient.visit_type == 'HB' %}hb{% elif patient.visit_type == 'TK' %}tk{% else %}new{% endif %}">
+                    <span class="visit-type {% if patient.visit_type == 'HB' %}hb{% elif patient.visit_type == 'TK' %}tk{% elif patient.visit_type == 'Neuaufnahme' %}neuaufnahme{% endif %}">
                         {{ patient.visit_type }}
                     </span>
                 </td>
-                <td>{{ patient.lat }}</td>
-                <td>{{ patient.lon }}</td>
             </tr>
             {% endfor %}
         </tbody>

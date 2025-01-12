@@ -1,6 +1,6 @@
 import io
 import pandas as pd
-from flask import flash, redirect, url_for, session
+from flask import flash, redirect, url_for, session, current_app as app
 import googlemaps
 import os
 from werkzeug.utils import secure_filename
@@ -12,7 +12,8 @@ from backend.entities import Patient, Vehicle, patients, vehicles
 gmaps = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
 
 def get_selected_weekday():
-    return session.get('selected_weekday', 'Kein Wochentag gesetzt')
+    """Gibt den ausgewählten Wochentag zurück, standardmäßig 'Montag'"""
+    return session.get('selected_weekday', 'Montag')
 
 def geocode_address(address):
     try:
@@ -47,45 +48,57 @@ WEEKDAY_MAPPING = {
     4: 'Freitag'
 }
 
-def handle_patient_upload(request):
-    if 'patient_file' not in request.files:
-        flash('Keine Kundendatei ausgewählt')
-        return redirect(request.url)
+def handle_patient_upload(request, selected_weekday=None):
+    if request.method == 'POST' and 'patient_file' in request.files:
+        file = request.files['patient_file']
+        if file and file.filename != '' and allowed_file(file.filename):
+            try:
+                # Speichere die letzte Datei für späteres Neuladen
+                app.last_patient_upload = request
+                
+                df = pd.read_excel(file, dtype=str)
+                required_columns = ['Nachname', 'Vorname', 'Strasse', 'Ort', 'PLZ'] + list(WEEKDAY_MAPPING.values())
+                
+                if not all(col in df.columns for col in required_columns):
+                    flash('Excel-Datei hat nicht alle erforderlichen Spalten')
+                    return redirect(request.url)
 
-    file = request.files['patient_file']
-    if file.filename == '':
-        flash('Keine Kundendatei ausgewählt')
-        return redirect(request.url)
+                # Verwende den übergebenen Wochentag oder hole ihn aus der Session
+                weekday = selected_weekday or get_selected_weekday()
+                
+                # Filtere nach Wochentag und gültigen Besuchsarten
+                df_filtered = df[df[weekday].isin(VALID_VISIT_TYPES)].copy()
 
-    if file and allowed_file(file.filename):
-        try:
-            df = pd.read_excel(file, dtype=str)
+                patients.clear()
+                for _, row in df_filtered.iterrows():
+                    name = f"{row['Vorname']} {row['Nachname']}"
+                    address = f"{row['Strasse']}, {row['PLZ']} {row['Ort']}"
+                    visit_type = row[weekday]
+                    lat, lon = geocode_address(address)
+                    patient = Patient(
+                        name=name, 
+                        address=address, 
+                        visit_type=visit_type, 
+                        lat=lat, 
+                        lon=lon
+                    )
+                    patients.append(patient)
 
-            required_columns = ['Nachname', 'Vorname', 'Strasse', 'Ort', 'PLZ'] + list(WEEKDAY_MAPPING.values())
-            if not all(col in df.columns for col in required_columns):
-                flash('Excel-Datei hat nicht alle erforderlichen Spalten')
+                if len(patients) == 0:
+                    flash(f'Keine Termine für {weekday} gefunden.')
+                else:
+                    flash(f'{len(patients)} Kunden für {weekday} erfolgreich importiert')
+                return redirect(url_for('show_patients'))
+
+            except Exception as e:
+                flash(f'Fehler beim Verarbeiten der Kundendatei: {str(e)}')
                 return redirect(request.url)
-
-            df_filtered = df[df[get_selected_weekday()].isin(VALID_VISIT_TYPES)].copy()
-
-            patients.clear()
-            for _, row in df_filtered.iterrows():
-                name = f"{row['Vorname']} {row['Nachname']}"
-                address = f"{row['Strasse']}, {row['PLZ']} {row['Ort']}"
-                visit_type = row[get_selected_weekday()]
-                lat, lon = geocode_address(address)
-                patient = Patient(name=name, address=address, visit_type=visit_type, lat=lat, lon=lon)
-                patients.append(patient)
-
-            if len(patients) == 0:
-                flash(f'Keine Termine für {get_selected_weekday()} gefunden.')
-            else:
-                flash(f'{len(patients)} Kunden für {get_selected_weekday()} erfolgreich importiert')
-            return redirect(url_for('show_patients'))
-
-        except Exception as e:
-            flash(f'Fehler beim Verarbeiten der Kundendatei: {str(e)}')
+        else:
+            flash('Keine gültige Kundendatei ausgewählt')
             return redirect(request.url)
+
+    flash('Keine Kundendatei ausgewählt')
+    return redirect(request.url)
 
 def handle_vehicle_upload(request):
     if 'vehicle_file' not in request.files:
@@ -101,7 +114,7 @@ def handle_vehicle_upload(request):
         try:
             df = pd.read_excel(file, dtype=str)
 
-            required_columns = ['Nachname', 'Vorname', 'Strasse', 'Ort', 'PLZ', 'Stellenumfang']
+            required_columns = ['Nachname', 'Vorname', 'Strasse', 'Ort', 'PLZ', 'Stellenumfang', 'Funktion']
             if not all(col in df.columns for col in required_columns):
                 flash('Excel-Datei hat nicht alle erforderlichen Spalten')
                 return redirect(request.url)
@@ -125,7 +138,8 @@ def handle_vehicle_upload(request):
                     start_address=f"{row['Strasse']}, {row['PLZ']} {row['Ort']}",
                     lat=lat,
                     lon=lon,
-                    stellenumfang=stellenumfang_val
+                    stellenumfang=stellenumfang_val,
+                    funktion=row.get('Funktion', '')
                 )
                 vehicles.append(vehicle)
 

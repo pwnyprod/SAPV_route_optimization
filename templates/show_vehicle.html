@@ -39,11 +39,10 @@
     <table>
         <thead>
             <tr>
-                <th>ID</th>
+                <th>Nr.</th>
                 <th>Name</th>
+                <th>Funktion</th>
                 <th>Startadresse</th>
-                <th>Breitengrad</th>
-                <th>Längengrad</th>
                 <th>Stellenumfang</th>
             </tr>
         </thead>
@@ -52,10 +51,9 @@
             <tr>
                 <td>{{ vehicle.id }}</td>
                 <td>{{ vehicle.name }}</td>
+                <td>{{ vehicle.funktion }}</td>
                 <td>{{ vehicle.start_address }}</td>
-                <td>{{ vehicle.lat }}</td>
-                <td>{{ vehicle.lon }}</td>
-                <td>{{ vehicle.stellenumfang }}</td>
+                <td>{{ vehicle.stellenumfang }} %</td>
             </tr>
             {% endfor %}
         </tbody>
