@@ -6,7 +6,7 @@ from backend.FileHandler import *
 from backend.RouteHandler import get_start_time, get_end_time
 from config import *
 
-# Setze die Umgebungsvariable für Google Cloud Service Account zur Authentifikation
+# Google Cloud Service Account Authentifizierung
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = SERVICE_ACCOUNT_CREDENTIALS
 
 app = Flask(__name__)
@@ -63,22 +63,24 @@ def show_vehicles():
 @app.route('/optimize_route', methods=['POST'])
 def optimize_route():
     """
-    1) Trenne TK/Non-TK
-    2) Fleet Routing Request nur für Non-TK
-    3) Berücksichtige Stellenumfang als max. Routenzeit
-    4) Gebe TK-Fälle separat zurück
-    5) Drucke Zeiten im Terminal (falls du magst)
+    Routenoptimierung:
+    - Trennung von TK und Nicht-TK Patienten
+    - Flottenrouting nur für Nicht-TK
+    - Berücksichtigung des Stellenumfangs als maximale Routenzeit
+    - Separate Rückgabe der TK-Fälle
+    - Optionale Zeitausgabe im Terminal
     """
     optimization_client = routeoptimization_v1.RouteOptimizationClient()
 
+    # Prüfe ob Daten vorhanden
     if not patients or not vehicles:
-        return jsonify({'status': 'error', 'message': 'Need at least one patient and one vehicle'})
+        return jsonify({'status': 'error', 'message': 'Mindestens ein Patient und ein Fahrzeug benötigt'})
 
-    # 1) Patienten nach visit_type trennen
+    # Patienten nach Besuchstyp trennen
     non_tk_patients = [p for p in patients if p.visit_type in ("Neuaufnahme", "HB")]
     tk_patients    = [p for p in patients if p.visit_type == "TK"]
 
-    # 2) Shipments nur für Non-TK
+    # Shipments für Nicht-TK erstellen
     shipments = []
     for patient in non_tk_patients:
         duration_seconds = 0

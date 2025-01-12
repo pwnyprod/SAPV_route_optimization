@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
 
+# Nächsten Wochentag ermitteln
 def get_next_weekday(weekday_name: str) -> datetime:
-    # Wochentagszuordnung mit großgeschriebenem Anfangsbuchstaben
+    # Wochentage mit Großbuchstaben
     weekdays = {
         'Montag': 0,
         'Dienstag': 1,
@@ -32,14 +33,14 @@ def get_next_weekday(weekday_name: str) -> datetime:
     return current_date + timedelta(days=days_difference)
 
 
-# Funktion für die Startzeit
+# Startzeit für Route ermitteln
 def get_start_time(weekday_name: str) -> str:
     target_date = get_next_weekday(weekday_name)
     start_time = datetime(target_date.year, target_date.month, target_date.day, 8, 0, 0)
     return start_time.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
 
 
-# Funktion für die Endzeit
+# Endzeit für Route ermitteln
 def get_end_time(weekday_name: str) -> str:
     target_date = get_next_weekday(weekday_name)
     end_time = datetime(target_date.year, target_date.month, target_date.day, 16, 0, 0)

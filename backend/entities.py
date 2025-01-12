@@ -1,4 +1,4 @@
-# Listen zum Speichern von Kunden und Fahrzeugen
+# Listen für Patienten und Fahrzeuge
 patients = []
 vehicles = []
 
@@ -16,7 +16,7 @@ class Entity:
 class Patient(Entity):
     def __init__(self, name, address, visit_type, lat=None, lon=None):
         super().__init__(name, lat, lon)
-        self.id = len(patients) + 1  # Eindeutige ID basierend auf der Liste der Kunden
+        self.id = len(patients) + 1  # Eindeutige ID basierend auf Patientenliste
         self.address = address
         self.visit_type = visit_type
 
@@ -26,14 +26,10 @@ class Patient(Entity):
 
 class Vehicle(Entity):
     def __init__(self, name, start_address, lat=None, lon=None, stellenumfang=100):
-        """
-        Erweitertes Vehicle mit Stellenumfang:
-          - stellenumfang: Zahl im Bereich 0..100, entspricht 0..100% (also 0..8h)
-        """
         super().__init__(name, lat, lon)
-        self.id = len(vehicles) + 1  # Eindeutige ID basierend auf der Liste der Fahrzeuge
+        self.id = len(vehicles) + 1  # Eindeutige ID basierend auf Fahrzeugliste
         self.start_address = start_address
-        self.stellenumfang = stellenumfang  # NEU: Attribut für Stellenumfang
+        self.stellenumfang = stellenumfang  # Arbeitszeit in Prozent (0-100%)
 
     def __str__(self):
         return (f"Vehicle: {self.name}, {self.start_address} "

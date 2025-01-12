@@ -1,12 +1,10 @@
-/**************************************************************************
- * Globale Variablen
- **************************************************************************/
-let map;                        // Google Map-Objekt
-let markers = [];               // Array aller aktuell geladenen Marker
-let directionsRenderers = [];   // Array aller DirectionsRenderer für Routen
-let optimized_routes = [];      // Globale Variable für optimierte Routen
+// Globale Variablen
+let map;                        // Google Maps Objekt
+let markers = [];               // Alle aktuellen Marker
+let directionsRenderers = [];   // DirectionsRenderer für Routen
+let optimized_routes = [];      // Optimierte Routen
 
-// Feste Farbpalette (Beispiel: 20 Farben)
+// Feste Farbpalette (20 Farben)
 const COLORS = [
   "#FF0000","#0000FF","#008000","#FFD700","#FF00FF","#00CED1","#FFA500",
   "#800080","#8B4513","#000000","#C71585","#6495ED","#DC143C","#B8860B",
@@ -14,11 +12,8 @@ const COLORS = [
 ];
 
 window.onload = initMap();
-/**************************************************************************
- * 1) initMap():
- *    - Erstellt Google Map
- *    - Lädt Marker
- **************************************************************************/
+
+// Google Maps initialisieren und Marker laden
 function initMap() {
   map = new google.maps.Map(document.getElementById('map'), {
     center: { lat: 51.0237509, lng: 7.535209399 },
@@ -29,9 +24,7 @@ function initMap() {
   loadMarkers();
 }
 
-/**************************************************************************
- * 2) Marker vom Server laden
- **************************************************************************/
+// Marker vom Server laden
 async function loadMarkers() {
   clearMarkers();
   try {
@@ -64,26 +57,19 @@ async function loadMarkers() {
   }
 }
 
-/**************************************************************************
- * 3) Marker löschen
- **************************************************************************/
+// Alle Marker löschen
 function clearMarkers() {
   markers.forEach(marker => marker.setMap(null));
   markers = [];
 }
 
-/**************************************************************************
- * 4) Routen löschen
- **************************************************************************/
+// Alle Routen löschen
 function clearRoutes() {
   directionsRenderers.forEach(renderer => renderer.setMap(null));
   directionsRenderers = [];
 }
 
-/**************************************************************************
- * 5) calculateRoute():
- *    - Promise-basierte Funktion für DirectionsService
- **************************************************************************/
+// Route berechnen mit DirectionsService
 function calculateRoute(request, directionsRenderer) {
   return new Promise((resolve, reject) => {
     const directionsService = new google.maps.DirectionsService();
@@ -99,9 +85,7 @@ function calculateRoute(request, directionsRenderer) {
   });
 }
 
-/**************************************************************************
- * 6) Klick auf "Route optimieren"
- **************************************************************************/
+// Handle optimize button click
 document.getElementById('optimizeButton').addEventListener('click', async () => {
   clearRoutes(); // Alte Routen entfernen
   try {
@@ -121,9 +105,7 @@ document.getElementById('optimizeButton').addEventListener('click', async () => 
   }
 });
 
-/**************************************************************************
- * 7) Weitere DOM-Events (Wochentag, etc.)
- **************************************************************************/
+// Handle DOM events (weekday selection etc.)
 document.addEventListener('DOMContentLoaded', function() {
   // Falls du initMap() hier manuell aufrufen willst (keine callback=initMap)
   initMap();
@@ -157,6 +139,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
+// Optimierte Routen anzeigen
 function displayRoutes(data) {
     clearRoutes();
     const routeResults = document.getElementById('routeResults');
@@ -290,7 +273,7 @@ function displayRoutes(data) {
     });
 }
 
-// Drag & Drop Funktionen
+// Drag & Drop functions
 function handleDragStart(e) {
     e.target.classList.add('dragging');
     e.dataTransfer.setData('text/plain', e.target.innerHTML);
@@ -405,7 +388,7 @@ function handleDrop(e) {
     }
 }
 
-// Neue Funktion zur Aktualisierung der Nummerierung
+// Stoppnummern aktualisieren
 function updateStopNumbers() {
     document.querySelectorAll('.stops-container').forEach(container => {
         // Nur Nicht-TK-Stopps nummerieren
@@ -422,7 +405,7 @@ function updateStopNumbers() {
     });
 }
 
-// Neue Funktion zur Aktualisierung der optimierten Routen
+// Optimierte Routen aktualisieren
 function updateOptimizedRoutes() {
     const optimized_routes = [];
     const assigned_tk_stops = new Set(); // Sammle zugewiesene TK-Stopps
