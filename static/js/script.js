@@ -194,7 +194,8 @@ function displayRoutes(data) {
         
         // Fahrzeug-Header mit Duration aus dem Backend
         const vehicleHeader = document.createElement('h3');
-        vehicleHeader.innerHTML = `${route.vehicle} <span class="duration">(${route.duration_hrs || 0} / ${route.max_hours}h)</span>`;
+        const durationColor = (route.duration_hrs || 0) <= route.max_hours ? 'green' : 'red';
+        vehicleHeader.innerHTML = `${route.vehicle} <span class="duration" style="color: ${durationColor}">(${route.duration_hrs || 0} / ${route.max_hours}h)</span>`;
         routeCard.appendChild(vehicleHeader);
         
         // Speichere die aktuelle Duration im Dataset
@@ -576,10 +577,19 @@ document.querySelectorAll('.stop-card').forEach(stopCard => {
     });
 });
 
-// Diese Funktion fehlt, wird aber in handleDrop verwendet
+// Funktion zum Aktualisieren der Routendauer
 function updateRouteDuration(routeCard, durationHrs = 0) {
     const header = routeCard.querySelector('h3');
-    const maxHours = header.querySelector('.duration').textContent.split('/')[1].trim();
-    header.querySelector('.duration').textContent = `(${durationHrs} / ${maxHours}h)`;
+    const durationSpan = header.querySelector('.duration');
+    const maxHours = parseFloat(durationSpan.textContent.split('/')[1].replace('h)', ''));
+    
+    // Setze die Textfarbe basierend auf dem Vergleich
+    if (durationHrs <= maxHours) {
+        durationSpan.style.color = 'green';
+    } else {
+        durationSpan.style.color = 'red';
+    }
+    
+    durationSpan.textContent = `(${durationHrs} / ${maxHours}h)`;
     routeCard.dataset.durationHrs = durationHrs;
 }
