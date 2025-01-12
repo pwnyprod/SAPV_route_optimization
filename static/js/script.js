@@ -127,22 +127,22 @@ function calculateRoute(request, routeColor, routeCard) {
 
 // Handle optimize button click
 document.getElementById('optimizeButton').addEventListener('click', async () => {
-  clearRoutes(); // Alte Routen entfernen
-  try {
-    const response = await fetch('/optimize_route', { method: 'POST' });
-    const data = await response.json();
+    clearRoutes(); // Alte Routen entfernen
+    try {
+        const response = await fetch('/optimize_route', { method: 'POST' });
+        const data = await response.json();
 
-    if (data.status === 'success') {
-      // Wir haben 'data.routes' (nur HB/Neuaufnahme) und 'data.tk_patients' (nur TK)
-      displayRoutes(data);
-      document.getElementById('resultsSection').style.display = 'block';
-    } else {
-      alert(data.message || "Fehler bei der Routenoptimierung");
+        if (data.status === 'success') {
+            displayRoutes(data);
+            document.getElementById('resultsSection').style.display = 'block';
+        } else {
+            console.error("Optimierungsfehler:", data.message);
+            alert(data.message || "Fehler bei der Routenoptimierung");
+        }
+    } catch (error) {
+        console.error("Fetch-Fehler bei /optimize_route:", error);
+        alert("Netzwerkfehler bei der Routenoptimierung. Details in der Konsole.");
     }
-  } catch (error) {
-    console.error("Fehler bei /optimize_route:", error);
-    alert("Fehler bei /optimize_route. Siehe Konsole.");
-  }
 });
 
 // Funktion zum Aktualisieren des Wochentags
@@ -283,6 +283,7 @@ function displayRoutes(data) {
                 <div class="patient-info">
                     <strong>${stop.patient}</strong>
                     <div>${stop.address}</div>
+                    <div class="time-info">${stop.time_info || ''}</div>
                     <div class="visit-type">${stop.visit_type || ''}</div>
                     <div style="display:none" data-lat="${stop.location.lat}" data-lng="${stop.location.lng}"></div>
                 </div>
@@ -542,6 +543,7 @@ function updateOptimizedRoutes() {
                 patient: stop.querySelector('strong').textContent,
                 address: stop.querySelector('.patient-info div').textContent,
                 visit_type: isTKStop ? "TK" : stop.querySelector('.visit-type').textContent,
+                time_info: stop.querySelector('.time-info')?.textContent || "",
                 location: locationDiv ? {
                     lat: parseFloat(locationDiv.dataset.lat),
                     lng: parseFloat(locationDiv.dataset.lng)

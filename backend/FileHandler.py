@@ -57,7 +57,12 @@ def handle_patient_upload(request, selected_weekday=None):
                 app.last_patient_upload = request
                 
                 df = pd.read_excel(file, dtype=str)
-                required_columns = ['Nachname', 'Vorname', 'Strasse', 'Ort', 'PLZ'] + list(WEEKDAY_MAPPING.values())
+                # Basis-Spalten
+                required_columns = ['Nachname', 'Vorname', 'Strasse', 'Ort', 'PLZ']
+                # Wochentags-Spalten
+                required_columns += list(WEEKDAY_MAPPING.values())
+                # Uhrzeit/Info-Spalten für jeden Wochentag
+                required_columns += [f"Uhrzeit/Info {day}" for day in WEEKDAY_MAPPING.values()]
                 
                 if not all(col in df.columns for col in required_columns):
                     flash('Excel-Datei hat nicht alle erforderlichen Spalten')
@@ -65,6 +70,9 @@ def handle_patient_upload(request, selected_weekday=None):
 
                 # Verwende den übergebenen Wochentag oder hole ihn aus der Session
                 weekday = selected_weekday or get_selected_weekday()
+                
+                # Spaltenname für Zeitinfo
+                time_info_column = f"Uhrzeit/Info {weekday}"
                 
                 # Filtere nach Wochentag und gültigen Besuchsarten
                 df_filtered = df[df[weekday].isin(VALID_VISIT_TYPES)].copy()
@@ -74,11 +82,15 @@ def handle_patient_upload(request, selected_weekday=None):
                     name = f"{row['Vorname']} {row['Nachname']}"
                     address = f"{row['Strasse']}, {row['PLZ']} {row['Ort']}"
                     visit_type = row[weekday]
+                    # Konvertiere NaN zu leerem String
+                    time_info = str(row.get(time_info_column, ""))
+                    time_info = "" if time_info.lower() == "nan" else time_info
                     lat, lon = geocode_address(address)
                     patient = Patient(
                         name=name, 
                         address=address, 
                         visit_type=visit_type, 
+                        time_info=time_info,
                         lat=lat, 
                         lon=lon
                     )

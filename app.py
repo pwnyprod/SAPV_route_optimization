@@ -161,10 +161,16 @@ def optimize_route():
         }
     })
 
+    # Aufruf der Optimierung
     try:
-        # 4) Aufruf der Optimierung
         response = optimization_client.optimize_tours(fleet_routing_request)
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Optimierungsfehler: {str(e)}'
+        })
 
+    try:
         # Routen extrahieren
         optimized_routes = []
         for i, route in enumerate(response.routes):
@@ -209,6 +215,7 @@ def optimize_route():
                         "patient": p.name,
                         "address": p.address,
                         "visit_type": p.visit_type,
+                        "time_info": p.time_info,
                         "location": {
                             "lat": p.lat,
                             "lng": p.lon
@@ -234,7 +241,10 @@ def optimize_route():
         })
 
     except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)})
+        return jsonify({
+            'status': 'error',
+            'message': f'Serverfehler: {str(e)}'
+        })
 
 @app.route('/update_routes', methods=['POST'])
 def update_routes():
@@ -250,8 +260,8 @@ def update_routes():
                 if vehicle:
                     route_info = {
                         'vehicle': route['vehicle'],
-                        'duration_hrs': route['duration_hrs'],  # Neue berechnete Dauer
-                        'max_hours': route['max_hours'],        # Maximale Stunden
+                        'duration_hrs': route['duration_hrs'],
+                        'max_hours': route['max_hours'],
                         'vehicle_start': {
                             'lat': vehicle.lat,
                             'lng': vehicle.lon
