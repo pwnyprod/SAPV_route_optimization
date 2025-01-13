@@ -699,7 +699,7 @@ function updateOptimizedRoutes() {
             
             const stopInfo = {
                 patient: stop.querySelector('strong').textContent,
-                address: stop.querySelector('.patient-info div').textContent,
+                address: stop.querySelector('.address').textContent,
                 visit_type: isTKStop ? "TK" : stop.querySelector('.visit-type').textContent,
                 time_info: stop.querySelector('.time-info')?.textContent || "",
                 location: locationDiv ? {

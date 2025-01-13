@@ -149,12 +149,11 @@ li {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     cursor: move;
     transition: transform 0.2s ease;
-    border: 1px solid #eee;
 }
 
 .stop-card:hover {
-    border-color: #ddd;
-    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
 .stop-card.dragging {
@@ -189,6 +188,7 @@ li {
 
 .patient-info .address {
     color: #555;
+    font-size: 0.95em;
 }
 
 .patient-info .time-info {

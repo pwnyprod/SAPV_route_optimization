@@ -297,7 +297,6 @@ def update_routes():
                     }
                     optimized_routes.append(route_info)
         
-        print(optimized_routes)
         # Speichere die nicht zugewiesenen TK-Stopps
         unassigned_tk_stops = data.get('unassigned_tk_stops', [])
         
