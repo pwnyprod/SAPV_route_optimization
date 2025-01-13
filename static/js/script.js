@@ -174,7 +174,6 @@ function calculateRoute(request, routeColor, routeCard) {
     return new Promise((resolve, reject) => {
         const directionsService = new google.maps.DirectionsService();
         
-        // Erstelle DirectionsRenderer hier
         const directionsRenderer = new google.maps.DirectionsRenderer({
             map: map,
             suppressMarkers: true,
@@ -191,7 +190,6 @@ function calculateRoute(request, routeColor, routeCard) {
             if (status === "OK") {
                 directionsRenderer.setDirections(result);
                 
-                // Berechne Gesamtzeit (Fahrt + Besuche)
                 let totalDuration = 0;
                 result.routes[0].legs.forEach(leg => {
                     totalDuration += leg.duration.value;
@@ -204,8 +202,8 @@ function calculateRoute(request, routeColor, routeCard) {
                 });
                 
                 const durationHrs = Math.round((totalDuration / 3600) * 100) / 100;
-                // Speichere die berechnete Duration im Dataset
                 routeCard.dataset.durationHrs = durationHrs;
+                updateRouteDuration(routeCard, durationHrs);
                 
                 resolve(result);
             } else {
@@ -555,7 +553,7 @@ function getDropPosition(container, y, isTKStop) {
     }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
-function handleDrop(e) {
+async function handleDrop(e) {
     e.preventDefault();
     const draggingElement = document.querySelector('.dragging');
     
@@ -589,8 +587,12 @@ function handleDrop(e) {
                 }
             }
             
+            // Aktualisiere die Stoppnummern
             updateStopNumbers();
-
+            
+            // Sammle alle Routenberechnungen
+            const routePromises = [];
+            
             // Aktualisiere die Routen für alle Container
             document.querySelectorAll('.stops-container:not([data-vehicle="tk"])').forEach(cont => {
                 const routeCard = cont.closest('.route-card');
@@ -621,14 +623,19 @@ function handleDrop(e) {
                         optimizeWaypoints: false
                     };
 
-                    calculateRoute(request, routeColor, routeCard);
+                    routePromises.push(calculateRoute(request, routeColor, routeCard));
                 }
             });
 
-            // Warte kurz, bis alle Routen berechnet wurden
-            setTimeout(() => {
+            try {
+                // Warte auf alle Routenberechnungen
+                await Promise.all(routePromises);
+                
+                // Jetzt erst die optimierten Routen aktualisieren
                 updateOptimizedRoutes();
-            }, 100);
+            } catch (error) {
+                console.error('Fehler bei der Routenberechnung:', error);
+            }
         }
     }
 }
