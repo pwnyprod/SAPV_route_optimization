@@ -378,3 +378,46 @@ th {
 .close-btn:hover {
     color: #333;
 }
+
+/* Marker Info-Window Styling */
+.marker-info {
+    padding: 5px;
+    font-family: Arial, sans-serif;
+}
+
+.marker-info strong {
+    display: block;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.marker-address {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.marker-function {
+    font-size: 0.9em;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-bottom: 3px;
+    display: inline-block;
+    font-weight: bold;
+}
+
+.marker-function.arzt { background-color: #FFD700; }
+.marker-function.pflege { background-color: #98FB98; }
+.marker-function.honorar { background-color: #DDA0DD; }
+
+.marker-visit-type {
+    font-size: 0.9em;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin: 3px 0;
+    display: inline-block;
+    font-weight: bold;
+}
+
+.marker-visit-type.hb { background-color: #32CD32; }
+.marker-visit-type.tk { background-color: #1E90FF; }
+.marker-visit-type.neuaufnahme { background-color: #FF4500; }

@@ -6,8 +6,8 @@ let optimized_routes = [];      // Optimierte Routen
 
 // Feste Farbpalette (30 gut unterscheidbare Farben)
 const COLORS = [
-    "#FF0000", "#0000FF", "#00FF00", "#FFA500", "#800080",
-    "#FFD700", "#FF1493", "#00CED1", "#32CD32", "#FF4500",
+    "#FF0000", "#0000FF", "#E91E63", "#FFA500", "#800080",
+    "#2196F3", "#673AB7", "#00CED1", "#009688", "#795548",
     "#4169E1", "#8B4513", "#FF69B4", "#4B0082", "#00FF7F",
     "#CD853F", "#00BFFF", "#FF6347", "#7B68EE", "#2E8B57",
     "#DAA520", "#9370DB", "#3CB371", "#FF8C00", "#BA55D3",
@@ -40,25 +40,89 @@ async function loadMarkers() {
     const response = await fetch('/get_markers');
     const data = await response.json();
 
-    // Patienten: rote Marker
+    // Info-Window Inhalt für Patienten
     data.patients.forEach(p => {
+      const infoContent = `
+        <div class="marker-info">
+          <strong>${p.name}</strong>
+          <div class="marker-visit-type ${
+            p.visit_type === 'HB' ? 'hb' : 
+            p.visit_type === 'TK' ? 'tk' : 
+            p.visit_type === 'Neuaufnahme' ? 'neuaufnahme' : ''
+          }">${p.visit_type}</div>
+          <div class="marker-address">${p.start_address || p.address}</div>
+        </div>
+      `;
+
+      const infoWindow = new google.maps.InfoWindow({
+        content: infoContent,
+        maxWidth: 200
+      });
+
       const marker = new google.maps.Marker({
         position: { lat: p.lat, lng: p.lng },
         map: map,
-        title: p.name,
-        icon: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 8,
+          fillColor: p.visit_type === 'HB' ? '#32CD32' :      // Kräftiges Grün
+                     p.visit_type === 'TK' ? '#1E90FF' :      // Kräftiges Blau
+                     p.visit_type === 'Neuaufnahme' ? '#FF4500' :  // Kräftiges Orange-Rot
+                     '#666666',  // Fallback
+          fillOpacity: 1,
+          strokeWeight: 2,
+          strokeColor: "#FFFFFF"
+        }
       });
+
+      // Click-Event für Info-Window
+      marker.addListener('click', () => {
+        infoWindow.open(map, marker);
+      });
+
       markers.push(marker);
     });
 
-    // Fahrzeuge: grüne Marker
+    // Info-Window Inhalt für Mitarbeiter
     data.vehicles.forEach(v => {
+      const infoContent = `
+        <div class="marker-info">
+          <strong>${v.name}</strong>
+          <div class="marker-function ${
+            v.funktion === 'Arzt' ? 'arzt' : 
+            v.funktion === 'Pflegekraft' ? 'pflege' : 
+            v.funktion?.toLowerCase().includes('honorararzt') ? 'honorar' : ''
+          }">${v.funktion || ''}</div>
+          <div class="marker-address">${v.start_address || v.address}</div>
+        </div>
+      `;
+
+      const infoWindow = new google.maps.InfoWindow({
+        content: infoContent,
+        maxWidth: 200
+      });
+
       const marker = new google.maps.Marker({
         position: { lat: v.lat, lng: v.lng },
         map: map,
-        title: v.name,
-        icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png'
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 8,
+          fillColor: v.funktion === 'Arzt' ? '#FFD700' :           // Gold (unverändert)
+                     v.funktion === 'Pflegekraft' ? '#00FF00' :    // Leuchtendes Grün
+                     v.funktion?.toLowerCase().includes('honorararzt') ? '#FF1493' :  // Kräftiges Pink
+                     '#666666',  // Fallback
+          fillOpacity: 1,
+          strokeWeight: 2,
+          strokeColor: "#FFFFFF"
+        }
       });
+
+      // Click-Event für Info-Window
+      marker.addListener('click', () => {
+        infoWindow.open(map, marker);
+      });
+
       markers.push(marker);
     });
   } catch (error) {
@@ -544,6 +608,7 @@ function updateOptimizedRoutes() {
             vehicle_start: null,
             duration_hrs: parseFloat(routeCard.dataset.durationHrs || 0),
             max_hours: parseFloat(routeCard.querySelector('.duration').textContent.split('/')[1].replace('h)', '')),
+            funktion: routeCard.querySelector('.funktion-line')?.textContent || '',
             stops: []
         };
         

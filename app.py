@@ -65,13 +65,28 @@ def upload_file():
         google_maps_api_key=GOOGLE_MAPS_API_KEY
     )
 
-@app.route('/get_markers', methods=['GET'])
+@app.route('/get_markers')
 def get_markers():
-    markers = {
-        'patients': [{'name': c.name, 'lat': c.lat, 'lng': c.lon} for c in patients],
-        'vehicles': [{'name': v.name, 'lat': v.lat, 'lng': v.lon} for v in vehicles]
-    }
-    return jsonify(markers)
+    return jsonify({
+        'patients': [
+            {
+                'name': p.name,
+                'address': p.address,
+                'lat': p.lat,
+                'lng': p.lon,
+                'visit_type': p.visit_type
+            } for p in patients
+        ],
+        'vehicles': [
+            {
+                'name': v.name,
+                'start_address': v.start_address,
+                'lat': v.lat,
+                'lng': v.lon,
+                'funktion': v.funktion
+            } for v in vehicles
+        ]
+    })
 
 @app.route('/patients', methods=['GET', 'POST'])
 def show_patients():
@@ -262,6 +277,7 @@ def update_routes():
                         'vehicle': route['vehicle'],
                         'duration_hrs': route['duration_hrs'],
                         'max_hours': route['max_hours'],
+                        'funktion': route['funktion'],
                         'vehicle_start': {
                             'lat': vehicle.lat,
                             'lng': vehicle.lon
