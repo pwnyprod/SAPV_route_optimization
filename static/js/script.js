@@ -40,6 +40,22 @@ async function loadMarkers() {
     const response = await fetch('/get_markers');
     const data = await response.json();
 
+    // Hole die aktuellen Routen für die Stopp-Nummern
+    const routesResponse = await fetch('/get_saved_routes');
+    const routesData = await routesResponse.json();
+    
+    // Erstelle Map von Patient zu Stopp-Nummer
+    const stopNumbers = new Map();
+    if (routesData.status === 'success') {
+      routesData.routes.forEach(route => {
+        route.stops.forEach((stop, index) => {
+          if (stop.visit_type !== 'TK') {
+            stopNumbers.set(stop.patient, (index + 1).toString());
+          }
+        });
+      });
+    }
+
     // Info-Window Inhalt für Patienten
     data.patients.forEach(p => {
       const infoContent = `
@@ -62,25 +78,36 @@ async function loadMarkers() {
       const marker = new google.maps.Marker({
         position: { lat: p.lat, lng: p.lng },
         map: map,
+        label: p.visit_type !== 'TK' ? {
+          text: stopNumbers.get(p.name) || '',
+          color: '#FFFFFF',
+          fontSize: '10px',
+          fontWeight: 'bold'
+        } : null,
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: p.visit_type === 'HB' ? '#32CD32' :      // Kräftiges Grün
-                     p.visit_type === 'TK' ? '#1E90FF' :      // Kräftiges Blau
-                     p.visit_type === 'Neuaufnahme' ? '#FF4500' :  // Kräftiges Orange-Rot
-                     '#666666',  // Fallback
+          scale: 10,
+          fillColor: p.visit_type === 'HB' ? '#32CD32' :
+                     p.visit_type === 'TK' ? '#1E90FF' :
+                     p.visit_type === 'Neuaufnahme' ? '#FF4500' :
+                     '#666666',
           fillOpacity: 1,
           strokeWeight: 2,
-          strokeColor: "#FFFFFF"
+          strokeColor: "#FFFFFF",
+          labelOrigin: new google.maps.Point(0, 0)
         }
       });
 
-      // Click-Event für Info-Window
       marker.addListener('click', () => {
         infoWindow.open(map, marker);
       });
 
       markers.push(marker);
+      marker.customData = {
+        type: 'patient',
+        name: p.name,
+        isTK: p.visit_type === 'TK'
+      };
     });
 
     // Info-Window Inhalt für Mitarbeiter
@@ -107,11 +134,11 @@ async function loadMarkers() {
         map: map,
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: v.funktion === 'Arzt' ? '#FFD700' :           // Gold (unverändert)
-                     v.funktion === 'Pflegekraft' ? '#00FF00' :    // Leuchtendes Grün
-                     v.funktion?.toLowerCase().includes('honorararzt') ? '#FF1493' :  // Kräftiges Pink
-                     '#666666',  // Fallback
+          scale: 10,
+          fillColor: v.funktion === 'Arzt' ? '#FFD700' :
+                     v.funktion === 'Pflegekraft' ? '#00FF00' :
+                     v.funktion?.toLowerCase().includes('honorararzt') ? '#FF1493' :
+                     '#666666',
           fillOpacity: 1,
           strokeWeight: 2,
           strokeColor: "#FFFFFF"
@@ -593,6 +620,30 @@ function updateStopNumbers() {
                 stop.insertBefore(numberDiv, stop.firstChild);
             }
             numberDiv.textContent = index + 1;
+            
+            // Aktualisiere auch das entsprechende Marker-Label
+            const patientName = stop.querySelector('strong').textContent;
+            markers.forEach(marker => {
+                if (marker.customData?.name === patientName) {
+                    marker.setLabel({
+                        text: (index + 1).toString(),
+                        color: '#FFFFFF',
+                        fontSize: '10px',
+                        fontWeight: 'bold'
+                    });
+                }
+            });
+        });
+        
+        // Entferne Labels von Markern, die nicht mehr in einer Route sind
+        markers.forEach(marker => {
+            if (marker.customData?.type === 'patient' && !marker.customData?.isTK) {
+                const isInRoute = [...document.querySelectorAll('.stop-card:not(.tk-stop) strong')]
+                    .some(strong => strong.textContent === marker.customData.name);
+                if (!isInRoute) {
+                    marker.setLabel(null);
+                }
+            }
         });
     });
 }
