@@ -14,6 +14,7 @@ app.secret_key = FLASK_SECRET_KEY
 
 # Globale Variable für optimierte Routen
 optimized_routes = []
+unassigned_tk_stops = []  # Speichert nicht zugeordnete TK-Fälle
 
 def get_selected_weekday():
     return session.get('selected_weekday', 'Montag')
@@ -62,7 +63,8 @@ def upload_file():
         'index.html',
         patients=patients,
         vehicles=vehicles,
-        google_maps_api_key=GOOGLE_MAPS_API_KEY
+        google_maps_api_key=GOOGLE_MAPS_API_KEY,
+        saved_routes=optimized_routes
     )
 
 @app.route('/get_markers')
@@ -187,6 +189,7 @@ def optimize_route():
 
     try:
         # Routen extrahieren
+        global optimized_routes
         optimized_routes = []
         for i, route in enumerate(response.routes):
             start_dt = route.vehicle_start_time
@@ -240,14 +243,21 @@ def optimize_route():
             optimized_routes.append(route_info)
 
         # 5) TK-Fälle als Liste
+        global unassigned_tk_stops
         tk_list = [
             {
                 "patient": tk.name,
                 "address": tk.address,
-                "visit_type": tk.visit_type
+                "visit_type": tk.visit_type,
+                "time_info": tk.time_info,
+                "location": {
+                    "lat": tk.lat,
+                    "lng": tk.lon
+                }
             }
             for tk in tk_patients
         ]
+        unassigned_tk_stops = tk_list
 
         return jsonify({
             'status': 'success',
@@ -265,6 +275,7 @@ def optimize_route():
 def update_routes():
     try:
         global optimized_routes
+        global unassigned_tk_stops
         data = request.get_json()
         optimized_routes = []
         
@@ -287,7 +298,7 @@ def update_routes():
                     optimized_routes.append(route_info)
         
         print(optimized_routes)
-        # Verarbeite die nicht zugewiesenen TK-Stopps
+        # Speichere die nicht zugewiesenen TK-Stopps
         unassigned_tk_stops = data.get('unassigned_tk_stops', [])
         
         return jsonify({
@@ -301,6 +312,14 @@ def update_routes():
 @app.route('/get-current-weekday')
 def get_current_weekday():
     return jsonify({'weekday': get_selected_weekday()})
+
+@app.route('/get_saved_routes')
+def get_saved_routes():
+    return jsonify({
+        'status': 'success',
+        'routes': optimized_routes,
+        'tk_patients': unassigned_tk_stops
+    })
 
 if __name__ == '__main__':
     app.run(debug=True)

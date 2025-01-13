@@ -229,6 +229,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Falls du initMap() hier manuell aufrufen willst (keine callback=initMap)
     initMap();
 
+    // Lade gespeicherte Routen
+    loadSavedRoutes();
+
     const weekdaySelect = document.getElementById('weekdaySelect');
     const tomorrowBtn = document.getElementById('tomorrowBtn');
 
@@ -705,4 +708,18 @@ function updateRouteDuration(routeCard, durationHrs = 0) {
 function toggleInfo(id) {
   const popup = document.getElementById(id);
   popup.style.display = popup.style.display === 'block' ? 'none' : 'block';
+}
+
+// Funktion zum Laden der gespeicherten Routen
+async function loadSavedRoutes() {
+    try {
+        const response = await fetch('/get_saved_routes');
+        const data = await response.json();
+        if (data.status === 'success' && data.routes.length > 0) {
+            displayRoutes(data);
+            document.getElementById('resultsSection').style.display = 'block';
+        }
+    } catch (error) {
+        console.error("Fehler beim Laden der gespeicherten Routen:", error);
+    }
 }
