@@ -79,7 +79,7 @@ async function loadMarkers() {
         position: { lat: p.lat, lng: p.lng },
         map: map,
         label: p.visit_type !== 'TK' ? {
-          text: stopNumbers.get(p.name) || '',
+          text: stopNumbers.get(p.name) || ' ',
           color: '#FFFFFF',
           fontSize: '10px',
           fontWeight: 'bold'
@@ -297,6 +297,32 @@ document.addEventListener('DOMContentLoaded', function() {
 // Optimierte Routen anzeigen
 function displayRoutes(data) {
     clearRoutes();
+    // Aktualisiere die Marker-Labels für die neuen Routen
+    markers.forEach(marker => {
+        if (marker.customData?.type === 'patient' && !marker.customData?.isTK) {
+            // Suche die Route und Position des Patienten
+            let found = false;
+            data.routes.some(route => {
+                const stopIndex = route.stops.findIndex(stop => stop.patient === marker.customData.name);
+                if (stopIndex !== -1) {
+                    marker.setLabel({
+                        text: (stopIndex + 1).toString(),
+                        color: '#FFFFFF',
+                        fontSize: '10px',
+                        fontWeight: 'bold'
+                    });
+                    found = true;
+                    return true;
+                }
+                return false;
+            });
+            // Wenn der Patient in keiner Route ist, kein Label anzeigen
+            if (!found) {
+                marker.setLabel(null);
+            }
+        }
+    });
+    
     const routeResults = document.getElementById('routeResults');
     routeResults.innerHTML = '';
     
