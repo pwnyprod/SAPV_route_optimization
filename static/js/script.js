@@ -221,7 +221,11 @@ function displayRoutes(data) {
         const durationColor = (route.duration_hrs || 0) <= route.max_hours ? 'green' : 'red';
         vehicleHeader.innerHTML = `
             ${route.vehicle}
-            <div style="font-size: 0.8em; color: #666; margin: 2px 0;">${route.funktion || ''}</div>
+            <div class="funktion-line ${
+                route.funktion === 'Arzt' ? 'arzt' : 
+                route.funktion === 'Pflegekraft' ? 'pflege' : 
+                route.funktion?.toLowerCase().includes('honorararzt') ? 'honorar' : ''
+            }">${route.funktion || ''}</div>
             <span class="duration" style="color: ${durationColor}">(${route.duration_hrs || 0} / ${route.max_hours}h)</span>
         `;
         routeCard.appendChild(vehicleHeader);
@@ -281,10 +285,16 @@ function displayRoutes(data) {
             stopCard.innerHTML = `
                 ${stop.visit_type !== 'TK' ? `<div class="stop-number">${stopIndex + 1}</div>` : ''}
                 <div class="patient-info">
-                    <strong>${stop.patient}</strong>
-                    <div>${stop.address}</div>
+                    <div class="name-line ${
+                        stop.visit_type === 'HB' ? 'hb' : 
+                        stop.visit_type === 'TK' ? 'tk' : 
+                        stop.visit_type === 'Neuaufnahme' ? 'neuaufnahme' : ''
+                    }">
+                        <strong>${stop.patient}</strong>
+                        <span class="visit-type">${stop.visit_type || ''}</span>
+                    </div>
+                    <div class="address">${stop.address}</div>
                     <div class="time-info">${stop.time_info || ''}</div>
-                    <div class="visit-type">${stop.visit_type || ''}</div>
                     <div style="display:none" data-lat="${stop.location.lat}" data-lng="${stop.location.lng}"></div>
                 </div>
             `;
@@ -320,9 +330,12 @@ function displayRoutes(data) {
             tkStop.draggable = true;
             tkStop.innerHTML = `
                 <div class="patient-info">
-                    <strong>${tk.patient}</strong>
-                    <div>${tk.address}</div>
-                    <div class="visit-type">TK</div>
+                    <div class="name-line tk">
+                        <strong>${tk.patient}</strong>
+                        <span class="visit-type">TK</span>
+                    </div>
+                    <div class="address">${tk.address}</div>
+                    <div class="time-info">${tk.time_info || ''}</div>
                     <div style="display:none" data-lat="${tk.location?.lat}" data-lng="${tk.location?.lng}"></div>
                 </div>
             `;
@@ -622,4 +635,9 @@ function updateRouteDuration(routeCard, durationHrs = 0) {
     
     durationSpan.textContent = `(${durationHrs} / ${maxHours}h)`;
     routeCard.dataset.durationHrs = durationHrs;
+}
+
+function toggleInfo(id) {
+  const popup = document.getElementById(id);
+  popup.style.display = popup.style.display === 'block' ? 'none' : 'block';
 }

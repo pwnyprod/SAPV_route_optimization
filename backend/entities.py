@@ -22,13 +22,13 @@ class Patient(Entity):
         self.time_info = time_info
 
     def __str__(self):
-        return f"Customer: {self.name}, {self.address} ({self.lat}, {self.lon})"
+        return f"Patient: {self.name}, {self.address} ({self.lat}, {self.lon})"
 
 
 class Vehicle(Entity):
     def __init__(self, name, start_address, lat=None, lon=None, stellenumfang=100, funktion=""):
         super().__init__(name, lat, lon)
-        self.id = len(vehicles) + 1  # Eindeutige ID basierend auf Fahrzeugliste
+        self.id = len(vehicles) + 1  # Eindeutige ID basierend auf Mitarbeiterliste
         self.start_address = start_address
         self.stellenumfang = stellenumfang  # Arbeitszeit in Prozent (0-100%)
         self.funktion = funktion

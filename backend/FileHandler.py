@@ -97,29 +97,29 @@ def handle_patient_upload(request, selected_weekday=None):
                     patients.append(patient)
 
                 if len(patients) == 0:
-                    flash(f'Keine Termine für {weekday} gefunden.')
+                    flash(f'Keine Patienten für {weekday} gefunden.')
                 else:
-                    flash(f'{len(patients)} Kunden für {weekday} erfolgreich importiert')
+                    flash(f'{len(patients)} Patienten für {weekday} erfolgreich importiert')
                 return redirect(url_for('show_patients'))
 
             except Exception as e:
-                flash(f'Fehler beim Verarbeiten der Kundendatei: {str(e)}')
+                flash(f'Fehler beim Verarbeiten der Patientendatei: {str(e)}')
                 return redirect(request.url)
         else:
-            flash('Keine gültige Kundendatei ausgewählt')
+            flash('Keine gültige Patientendatei ausgewählt')
             return redirect(request.url)
 
-    flash('Keine Kundendatei ausgewählt')
+    flash('Keine Patientendatei ausgewählt')
     return redirect(request.url)
 
 def handle_vehicle_upload(request):
     if 'vehicle_file' not in request.files:
-        flash('Keine Fahrzeugdatei ausgewählt')
+        flash('Keine Mitarbeiterdatei ausgewählt')
         return redirect(request.url)
 
     file = request.files['vehicle_file']
     if file.filename == '':
-        flash('Keine Fahrzeugdatei ausgewählt')
+        flash('Keine Mitarbeiterdatei ausgewählt')
         return redirect(request.url)
 
     if file and allowed_file(file.filename):
@@ -156,11 +156,11 @@ def handle_vehicle_upload(request):
                 vehicles.append(vehicle)
 
             if len(vehicles) == 0:
-                flash('Keine Fahrzeuge importiert')
+                flash('Keine Mitarbeiter importiert')
             else:
-                flash(f'{len(vehicles)} Fahrzeuge erfolgreich importiert')
+                flash(f'{len(vehicles)} Mitarbeiter erfolgreich importiert')
             return redirect(url_for('show_vehicles'))
 
         except Exception as e:
-            flash(f'Fehler beim Verarbeiten der Fahrzeugdatei: {str(e)}')
+            flash(f'Fehler beim Verarbeiten der Mitarbeiterdatei: {str(e)}')
             return redirect(request.url)

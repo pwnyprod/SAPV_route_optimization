@@ -2,46 +2,15 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Kundenliste</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .back-link {
-            margin-bottom: 20px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #f2f2f2;
-        }
-        .visit-type {
-            padding: 5px;
-            border-radius: 3px;
-            font-weight: bold;
-        }
-        .hb { background-color: #90EE90; }
-        .tk { background-color: #87CEFA; }
-        .neuaufnahme { background-color: #FFB6C1; }
-    </style>
+    <title>Patientenliste</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="back-link">
         <a href="{{ url_for('upload_file') }}">← Zurück zum Upload</a>
     </div>
 
-    <h1>Kundenliste</h1>
+    <h1>Patientenliste</h1>
 
     <h2>Termine für {{ weekday }}</h2>
 
@@ -63,7 +32,7 @@
                 <td>{{ patient.address }}</td>
                 <td>{{ patient.time_info }}</td>
                 <td>
-                    <span class="visit-type {% if patient.visit_type == 'HB' %}hb{% elif patient.visit_type == 'TK' %}tk{% elif patient.visit_type == 'Neuaufnahme' %}neuaufnahme{% endif %}">
+                    <span class="visit-badge {% if patient.visit_type == 'HB' %}hb{% elif patient.visit_type == 'TK' %}tk{% elif patient.visit_type == 'Neuaufnahme' %}neuaufnahme{% endif %}">
                         {{ patient.visit_type }}
                     </span>
                 </td>
